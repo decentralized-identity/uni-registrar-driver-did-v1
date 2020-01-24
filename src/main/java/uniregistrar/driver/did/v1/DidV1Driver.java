@@ -172,6 +172,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 		FileReader didDocumentReader = null;
 		JsonNode fileJsonKeys = null;
+		JsonNode fileJsonAuthentication = null;
+		JsonNode fileJsonCapabilityDelegation = null;
+		JsonNode fileJsonCapabilityInvocation = null;
 
 		try {
 
@@ -181,6 +184,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 			if (log.isDebugEnabled()) log.debug("JSON OBJECT: " + fileJsonNode);
 
 			fileJsonKeys = fileJsonNode.get("keys");
+			fileJsonAuthentication = fileJsonNode.get("doc").get("authentication");
+			fileJsonCapabilityDelegation = fileJsonNode.get("doc").get("capabilityDelegation");
+			fileJsonCapabilityInvocation = fileJsonNode.get("doc").get("capabilityInvocation");
 		} catch (IOException ex) {
 
 			throw new RegistrationException("Process read error: " + ex.getMessage(), ex);
@@ -202,15 +208,28 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		// REGISTRATION STATE FINISHED: SECRET
 
 		List<JsonNode> jsonKeys = new ArrayList<JsonNode> ();
+		TextNode fileJsonAuthenticationId = (TextNode) fileJsonAuthentication.get(0).get("id");
+		if (log.isDebugEnabled()) log.debug("Found authentication: " + fileJsonAuthenticationId.asText());
+
 		for (Iterator<Map.Entry<String, JsonNode>> i = fileJsonKeys.fields(); i.hasNext(); ) {
 
-			ObjectNode jsonKey = (ObjectNode) i.next().getValue();
-			JWK jsonWebKey = privateKeyToJWK(jsonKey);
-			String publicKeyDIDURL = identifierToPublicKeyDIDURL(jsonKey);
+			ObjectNode fileJsonKey = (ObjectNode) i.next().getValue();
+			TextNode fileJsonKeyId = (TextNode) fileJsonKey.get("id");
 
-			jsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
-			jsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
-			jsonKeys.add(jsonKey);
+			if (fileJsonKeyId.asText().equals(fileJsonAuthenticationId.asText())) {
+
+				if (log.isDebugEnabled()) log.debug("Found authentication key: " + fileJsonKeyId.asText());
+
+				JWK jsonWebKey = privateKeyToJWK(fileJsonKey);
+				String publicKeyDIDURL = identifierToPublicKeyDIDURL(fileJsonKey);
+
+				fileJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
+				fileJsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
+				jsonKeys.add(fileJsonKey);
+			} else {
+
+				if (log.isDebugEnabled()) log.debug("Found non-authentication key: " + fileJsonKeyId.asText() + " (skipping)");
+			}
 		}
 
 		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
