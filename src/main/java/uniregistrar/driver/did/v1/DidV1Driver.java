@@ -91,6 +91,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 		// read options
 
+		String hostname = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("hostname");
+		if (hostname == null || hostname.trim().isEmpty()) hostname = null;
+
 		String keytype = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("keytype");
 		if (keytype == null || keytype.trim().isEmpty()) keytype = null;
 
@@ -107,6 +110,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 			StringBuffer command = new StringBuffer("/opt/did-client/did generate");
 			command.append(" -t " + "veres");
+			if (hostname != null) command.append(" -H " + hostname);
 			if (keytype != null) command.append(" -k " + keytype);
 			if (ledger != null) command.append(" -m " + ledger);
 			command.append(" -r");
