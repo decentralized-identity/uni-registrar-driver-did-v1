@@ -106,7 +106,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		try {
 
 			StringBuffer command = new StringBuffer("/opt/did-client/did generate");
-			if (keytype != null) command.append(" -t " + keytype);
+			command.append(" -t " + "veres");
+			if (keytype != null) command.append(" -k " + keytype);
 			if (ledger != null) command.append(" -m " + ledger);
 			command.append(" -r");
 
@@ -125,6 +126,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 		String newDid = null;
 		String didDocumentLocation = null;
+		String keysDocumentLocation = null;
 
 		try {
 
@@ -134,10 +136,11 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 				if (log.isDebugEnabled()) log.debug("OUT: " + line);
 
-				if (line.startsWith("[Veres One][test] DID: ")) {
+				if (line.startsWith("[Veres One][test mode] Generated a new Veres One DID: ")) {
 
-					newDid = line.substring("[Veres One][test] DID: ".length());
-					didDocumentLocation = "/root/.dids/veres/test/"  + newDid.replace(":", "%3A") + ".json";
+					newDid = line.substring("[Veres One][test mode] Generated a new Veres One DID: ".length());
+					didDocumentLocation = "/root/.dids/veres-test/registered/"  + newDid.replace(":", "%3A") + ".json";
+					keysDocumentLocation = "/root/.dids/keys/"  + newDid.replace(":", "%3A") + ".keys.json";
 				}
 			}
 
@@ -166,30 +169,31 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		if (newDid == null) throw new RegistrationException("No DID registered.");
 
 		if (log.isDebugEnabled()) log.debug("DID: " + newDid);
-		if (log.isDebugEnabled()) log.debug("DID Document location: " + didDocumentLocation);
+		if (log.isDebugEnabled()) log.debug("DID document location: " + didDocumentLocation);
+		if (log.isDebugEnabled()) log.debug("Keys location: " + keysDocumentLocation);
 
 		// read DID document
 
 		FileReader didDocumentReader = null;
-		JsonNode fileJsonKeys = null;
-		JsonNode fileJsonAuthentication = null;
-		JsonNode fileJsonCapabilityDelegation = null;
-		JsonNode fileJsonCapabilityInvocation = null;
+		JsonNode didDocumentJsonAuthentication = null;
+		JsonNode didDocumentJsonAssertionMethod = null;
+		JsonNode didDocumentJsonCapabilityInvocation = null;
+		JsonNode didDocumentJsonCapabilityDelegation = null;
 
 		try {
 
 			didDocumentReader = new FileReader(new File(didDocumentLocation));
 
-			JsonNode fileJsonNode = new ObjectMapper().readTree(didDocumentReader);
-			if (log.isDebugEnabled()) log.debug("JSON OBJECT: " + fileJsonNode);
+			JsonNode didDocumentJsonRoot = new ObjectMapper().readTree(didDocumentReader);
+			if (log.isDebugEnabled()) log.debug("DID DOCUMENT JSON OBJECT: " + didDocumentJsonRoot);
 
-			fileJsonKeys = fileJsonNode.get("keys");
-			fileJsonAuthentication = fileJsonNode.get("doc").get("authentication");
-			fileJsonCapabilityDelegation = fileJsonNode.get("doc").get("capabilityDelegation");
-			fileJsonCapabilityInvocation = fileJsonNode.get("doc").get("capabilityInvocation");
+			didDocumentJsonAuthentication = didDocumentJsonRoot.get("authentication");
+			didDocumentJsonAssertionMethod = didDocumentJsonRoot.get("assertionMethod");
+			didDocumentJsonCapabilityInvocation = didDocumentJsonRoot.get("capabilityInvocation");
+			didDocumentJsonCapabilityDelegation = didDocumentJsonRoot.get("capabilityDelegation");
 		} catch (IOException ex) {
 
-			throw new RegistrationException("Process read error: " + ex.getMessage(), ex);
+			throw new RegistrationException("Cannot read DID document: " + ex.getMessage(), ex);
 		} finally {
 
 			try {
@@ -197,7 +201,50 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 				if (didDocumentReader != null) didDocumentReader.close();
 			} catch (IOException ex) {
 
-				throw new RegistrationException("Stream problem: " + ex.getMessage(), ex);
+				throw new RegistrationException("Cannot close DID document: " + ex.getMessage(), ex);
+			}
+		}
+
+		// read keys document
+
+		FileReader keysDocumentReader = null;
+		Map<String, ObjectNode> keysDocumentJsonKeys = new HashMap<String, ObjectNode> ();
+
+		try {
+
+			keysDocumentReader = new FileReader(new File(keysDocumentLocation));
+
+			JsonNode keysDocumentJsonRoot = new ObjectMapper().readTree(keysDocumentReader);
+			if (log.isDebugEnabled()) log.debug("KEYS DOCUMENT JSON OBJECT: " + (keysDocumentJsonRoot != null));
+
+			Iterator<Map.Entry<String, JsonNode>> keysDocumentJsonFields = keysDocumentJsonRoot.fields();
+
+			while (keysDocumentJsonFields.hasNext()) {
+
+				ObjectNode keysDocumentJsonKey = (ObjectNode) keysDocumentJsonFields.next().getValue();
+				TextNode keysDocumentJsonKeyId = (TextNode) keysDocumentJsonKey.get("id");
+
+				if (log.isDebugEnabled()) log.debug("Found key: " + keysDocumentJsonKeyId.asText());
+
+				JWK jsonWebKey = privateKeyToJWK(keysDocumentJsonKey);
+				String publicKeyDIDURL = identifierToPublicKeyDIDURL(keysDocumentJsonKey);
+
+				keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
+				keysDocumentJsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
+
+				keysDocumentJsonKeys.put(keysDocumentJsonKeyId.asText(), keysDocumentJsonKey);
+			}
+		} catch (IOException ex) {
+
+			throw new RegistrationException("Cannot read keys document: " + ex.getMessage(), ex);
+		} finally {
+
+			try {
+
+				if (keysDocumentReader != null) keysDocumentReader.close();
+			} catch (IOException ex) {
+
+				throw new RegistrationException("Cannot close keys document: " + ex.getMessage(), ex);
 			}
 		}
 
@@ -208,28 +255,19 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		// REGISTRATION STATE FINISHED: SECRET
 
 		List<JsonNode> jsonKeys = new ArrayList<JsonNode> ();
-		TextNode fileJsonAuthenticationId = (TextNode) fileJsonAuthentication.get(0).get("id");
-		if (log.isDebugEnabled()) log.debug("Found authentication: " + fileJsonAuthenticationId.asText());
+		TextNode didDocumentJsonAuthenticationId = (TextNode) didDocumentJsonAuthentication.get(0).get("id");
+		if (log.isDebugEnabled()) log.debug("Found authentication: " + didDocumentJsonAuthenticationId.asText());
 
-		for (Iterator<Map.Entry<String, JsonNode>> i = fileJsonKeys.fields(); i.hasNext(); ) {
+		ObjectNode keysDocumentJsonAuthenticationKey = keysDocumentJsonKeys.get(didDocumentJsonAuthenticationId.asText());
 
-			ObjectNode fileJsonKey = (ObjectNode) i.next().getValue();
-			TextNode fileJsonKeyId = (TextNode) fileJsonKey.get("id");
+		if (keysDocumentJsonAuthenticationKey != null) {
 
-			if (fileJsonKeyId.asText().equals(fileJsonAuthenticationId.asText())) {
+			if (log.isDebugEnabled()) log.debug("Found authentication key: " + didDocumentJsonAuthenticationId.asText());
 
-				if (log.isDebugEnabled()) log.debug("Found authentication key: " + fileJsonKeyId.asText());
+			jsonKeys.add(keysDocumentJsonAuthenticationKey);
+		} else {
 
-				JWK jsonWebKey = privateKeyToJWK(fileJsonKey);
-				String publicKeyDIDURL = identifierToPublicKeyDIDURL(fileJsonKey);
-
-				fileJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
-				fileJsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
-				jsonKeys.add(fileJsonKey);
-			} else {
-
-				if (log.isDebugEnabled()) log.debug("Found non-authentication key: " + fileJsonKeyId.asText() + " (skipping)");
-			}
+			throw new RegistrationException("Found no authentication key: " + didDocumentJsonAuthenticationId.asText());
 		}
 
 		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
