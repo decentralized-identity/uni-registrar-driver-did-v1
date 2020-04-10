@@ -3,7 +3,7 @@
 FROM universalregistrar/base-ubuntu
 MAINTAINER Markus Sabadello <markus@danubetech.com>
 
-# build dependencies
+# install dependencies
 
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN apt-get -y update && \
@@ -18,9 +18,14 @@ RUN apt-get -y update && \
 #	npm install did-cli@0.4.1
 
 RUN cd /opt/ && \
-	git clone https://github.com/digitalbazaar/did-client.git && \
-	cd did-client && \
+	git clone https://github.com/digitalbazaar/did-cli.git && \
+	cd did-cli && \
+	git checkout v0.6.0 && \
 	npm install
+
+ARG GITHUB_READ_PACKAGES_OWNER
+ARG GITHUB_READ_PACKAGES_TOKEN
+ADD ./settings.xml /root/.m2/
 
 # build driver-did-v1
 
