@@ -15,7 +15,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.danubetech.keyformats.PrivateKeyToJWK;
+import com.danubetech.keyformats.PrivateKey_to_JWK;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -320,7 +320,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		String kid = null;
 		String use = null;
 
-		return PrivateKeyToJWK.Ed25519PrivateKeyBytesToJWK(privateKeyBytes, publicKeyBytes, kid, use);
+		return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, kid, use);
 	}
 
 	private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
