@@ -8,7 +8,7 @@ MAINTAINER Markus Sabadello <markus@danubetech.com>
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN apt-get -y update && \
     apt-get install -y --no-install-recommends curl software-properties-common gpg gpg-agent make build-essential python && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
+    curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

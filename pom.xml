@@ -9,7 +9,7 @@
     <parent>
         <groupId>decentralized-identity</groupId>
         <artifactId>uni-registrar</artifactId>
-        <version>0.2-SNAPSHOT</version>
+        <version>0.1-SNAPSHOT</version>
     </parent>
 
     <profiles>
@@ -75,19 +75,19 @@
                             <dependency>
                                 <groupId>org.slf4j</groupId>
                                 <artifactId>slf4j-api</artifactId>
-                                <version>1.7.25</version>
+                                <version>1.7.30</version>
                                 <scope>compile</scope>
                             </dependency>
                             <dependency>
                                 <groupId>org.slf4j</groupId>
                                 <artifactId>jcl-over-slf4j</artifactId>
-                                <version>1.7.25</version>
+                                <version>1.7.30</version>
                                 <scope>compile</scope>
                             </dependency>
                             <dependency>
                                 <groupId>org.slf4j</groupId>
                                 <artifactId>slf4j-log4j12</artifactId>
-                                <version>1.7.25</version>
+                                <version>1.7.30</version>
                                 <scope>compile</scope>
                             </dependency>
                         </dependencies>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>decentralized-identity</groupId>
             <artifactId>uni-registrar-driver</artifactId>
-            <version>0.2-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

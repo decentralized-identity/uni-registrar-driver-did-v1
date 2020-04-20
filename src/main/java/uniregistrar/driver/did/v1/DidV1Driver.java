@@ -36,320 +36,318 @@ import uniregistrar.state.UpdateState;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
 
-	private static Logger log = LoggerFactory.getLogger(DidV1Driver.class);
+    private static final Logger log = LoggerFactory.getLogger(DidV1Driver.class);
 
-	private Map<String, Object> properties;
+    private Map<String, Object> properties;
 
-	private String trustAnchorSeed;
+    private String trustAnchorSeed;
 
-	public DidV1Driver(Map<String, Object> properties) {
+    public DidV1Driver(Map<String, Object> properties) {
 
-		this.setProperties(properties);
-	}
+        this.setProperties(properties);
+    }
 
-	public DidV1Driver() {
+    public DidV1Driver() {
 
-		this(getPropertiesFromEnvironment());
-	}
+        this(getPropertiesFromEnvironment());
+    }
 
-	private static Map<String, Object> getPropertiesFromEnvironment() {
+    private static Map<String, Object> getPropertiesFromEnvironment() {
 
-		if (log.isDebugEnabled()) log.debug("Loading from environment: " + System.getenv());
+        if (log.isDebugEnabled()) log.debug("Loading from environment: " + System.getenv());
 
-		Map<String, Object> properties = new HashMap<String, Object> ();
+        Map<String, Object> properties = new HashMap<>();
 
-		try {
+        try {
 
-			String env_trustAnchorSeed = System.getenv("uniregistrar_driver_did_v1_trustAnchorSeed");
+            String env_trustAnchorSeed = System.getenv("uniregistrar_driver_did_v1_trustAnchorSeed");
 
-			if (env_trustAnchorSeed != null) properties.put("trustAnchorSeed", env_trustAnchorSeed);
-		} catch (Exception ex) {
+            if (env_trustAnchorSeed != null) properties.put("trustAnchorSeed", env_trustAnchorSeed);
+        } catch (Exception ex) {
 
-			throw new IllegalArgumentException(ex.getMessage(), ex);
-		}
+            throw new IllegalArgumentException(ex.getMessage(), ex);
+        }
 
-		return properties;
-	}
+        return properties;
+    }
 
-	private void configureFromProperties() {
+    private static JWK privateKeyToJWK(ObjectNode jsonKey) {
 
-		if (log.isDebugEnabled()) log.debug("Configuring from properties: " + this.getProperties());
+        byte[] publicKeyBytes = Base58.decode(jsonKey.get("publicKeyBase58").asText());
+        byte[] privateKeyBytes = Base58.decode(jsonKey.get("privateKeyBase58").asText());
+        String kid = null;
+        String use = null;
 
-		try {
+        return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, kid, use);
+    }
 
-			String prop_trustAnchorSeed = (String) this.getProperties().get("trustAnchorSeed");
+    private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
 
-			if (prop_trustAnchorSeed != null) this.setTrustAnchorSeed(prop_trustAnchorSeed);
-		} catch (Exception ex) {
+        return jsonKey.get("id").asText();
+    }
 
-			throw new IllegalArgumentException(ex.getMessage(), ex);
-		}
-	}
+    private void configureFromProperties() {
 
-	@Override
-	public RegisterState register(RegisterRequest registerRequest) throws RegistrationException {
+        if (log.isDebugEnabled()) log.debug("Configuring from properties: " + this.getProperties());
 
-		// read options
+        try {
 
-		String hostname = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("hostname");
-		if (hostname == null || hostname.trim().isEmpty()) hostname = null;
+            String prop_trustAnchorSeed = (String) this.getProperties().get("trustAnchorSeed");
 
-		String keytype = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("keytype");
-		if (keytype == null || keytype.trim().isEmpty()) keytype = null;
+            if (prop_trustAnchorSeed != null) this.setTrustAnchorSeed(prop_trustAnchorSeed);
+        } catch (Exception ex) {
 
-		String ledger = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("ledger");
-		if (ledger == null || ledger.trim().isEmpty()) ledger = null;
+            throw new IllegalArgumentException(ex.getMessage(), ex);
+        }
+    }
 
-		// register
+    @Override
+    public RegisterState register(RegisterRequest registerRequest) throws RegistrationException {
 
-		int exitCode;
-		BufferedReader stdOutReader = null;
-		BufferedReader stdErrReader = null;
+        // read options
 
-		try {
+        String hostname = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("hostname");
+        if (hostname == null || hostname.trim().isEmpty()) hostname = null;
 
-			StringBuffer command = new StringBuffer("/opt/did-cli/did generate");
-			command.append(" -t " + "veres");
-			if (hostname != null) command.append(" -H " + hostname);
-			if (keytype != null) command.append(" -k " + keytype);
-			if (ledger != null) command.append(" -m " + ledger);
-			command.append(" -r");
+        String keytype = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("keytype");
+        if (keytype == null || keytype.trim().isEmpty()) keytype = null;
 
-			if (log.isDebugEnabled()) log.debug("Executing command: " + command);
+        String ledger = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("ledger");
+        if (ledger == null || ledger.trim().isEmpty()) ledger = null;
 
-			Process process = Runtime.getRuntime().exec(command.toString());
-			exitCode = process.waitFor();
-			stdOutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			stdErrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        // register
 
-			if (log.isDebugEnabled()) log.debug("Executed command: " + command + " (" + exitCode + ")");
-		} catch (IOException | InterruptedException ex) {
+        int exitCode;
+        BufferedReader stdOutReader;
+        BufferedReader stdErrReader;
 
-			throw new RegistrationException("Cannot generate DID: " + ex.getMessage(), ex);
-		}
+        try {
 
-		String newDid = null;
-		String didDocumentLocation = null;
-		String keysDocumentLocation = null;
+            StringBuilder command = new StringBuilder("/opt/did-cli/did generate");
+            command.append(" -t " + "veres");
+            if (hostname != null) command.append(" -H ").append(hostname);
+            if (keytype != null) command.append(" -k ").append(keytype);
+            if (ledger != null) command.append(" -m ").append(ledger);
+            command.append(" -r");
 
-		try {
+            if (log.isDebugEnabled()) log.debug("Executing command: " + command);
 
-			String line;
+            Process process = Runtime.getRuntime().exec(command.toString());
+            exitCode = process.waitFor();
+            stdOutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            stdErrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-			while ((line = stdOutReader.readLine()) != null) {
+            if (log.isDebugEnabled()) log.debug("Executed command: " + command + " (" + exitCode + ")");
+        } catch (IOException | InterruptedException ex) {
 
-				if (log.isDebugEnabled()) log.debug("OUT: " + line);
+            throw new RegistrationException("Cannot generate DID: " + ex.getMessage(), ex);
+        }
 
-				if (line.startsWith("[Veres One][test mode] Generated a new Veres One DID: ")) {
+        String newDid = null;
+        String didDocumentLocation = null;
+        String keysDocumentLocation = null;
 
-					newDid = line.substring("[Veres One][test mode] Generated a new Veres One DID: ".length());
-					didDocumentLocation = "/root/.dids/veres-test/registered/"  + newDid.replace(":", "%3A") + ".json";
-					keysDocumentLocation = "/root/.dids/keys/"  + newDid.replace(":", "%3A") + ".keys.json";
-				}
-			}
+        try {
 
-			while ((line = stdErrReader.readLine()) != null) {
+            String line;
 
-				if (log.isWarnEnabled()) log.warn("ERR: " + line);
-			}
-		} catch (IOException ex) {
+            while ((line = stdOutReader.readLine()) != null) {
 
-			throw new RegistrationException("Process read error: " + ex.getMessage(), ex);
-		} finally {
+                if (log.isDebugEnabled()) log.debug("OUT: " + line);
 
-			try {
+                if (line.startsWith("[Veres One][test mode] Generated a new Veres One DID: ")) {
 
-				if (stdOutReader != null) stdOutReader.close();
-				if (stdErrReader != null) stdErrReader.close();
-			} catch (IOException ex) {
+                    newDid = line.substring("[Veres One][test mode] Generated a new Veres One DID: ".length());
+                    didDocumentLocation = "/root/.dids/veres-test/registered/" + newDid.replace(":", "%3A") + ".json";
+                    keysDocumentLocation = "/root/.dids/keys/" + newDid.replace(":", "%3A") + ".keys.json";
+                }
+            }
 
-				throw new RegistrationException("Stream problem: " + ex.getMessage(), ex);
-			}
-		}
+            while ((line = stdErrReader.readLine()) != null) {
 
-		if (log.isDebugEnabled()) log.debug("Process exit code: " + exitCode);
-		if (exitCode != 0) throw new RegistrationException("Process exit code: " + exitCode);
+                if (log.isWarnEnabled()) log.warn("ERR: " + line);
+            }
+        } catch (IOException ex) {
+            throw new RegistrationException("Process read error: " + ex.getMessage(), ex);
+        } finally {
+            try {
+                stdOutReader.close();
+                stdErrReader.close();
+            } catch (IOException ex) {
+                throw new RegistrationException("Stream problem: " + ex.getMessage(), ex);
+            }
+        }
 
-		if (newDid == null) throw new RegistrationException("No DID registered.");
+        if (log.isDebugEnabled()) log.debug("Process exit code: " + exitCode);
+        if (exitCode != 0) throw new RegistrationException("Process exit code: " + exitCode);
 
-		if (log.isDebugEnabled()) log.debug("DID: " + newDid);
-		if (log.isDebugEnabled()) log.debug("DID document location: " + didDocumentLocation);
-		if (log.isDebugEnabled()) log.debug("Keys location: " + keysDocumentLocation);
+        if (newDid == null) throw new RegistrationException("No DID registered.");
 
-		// read DID document
+        if (log.isDebugEnabled()) log.debug("DID: " + newDid);
+        if (log.isDebugEnabled()) log.debug("DID document location: " + didDocumentLocation);
+        if (log.isDebugEnabled()) log.debug("Keys location: " + keysDocumentLocation);
 
-		FileReader didDocumentReader = null;
-		JsonNode didDocumentJsonAuthentication = null;
-		JsonNode didDocumentJsonAssertionMethod = null;
-		JsonNode didDocumentJsonCapabilityInvocation = null;
-		JsonNode didDocumentJsonCapabilityDelegation = null;
+        // read DID document
 
-		try {
+        FileReader didDocumentReader = null;
+        JsonNode didDocumentJsonAuthentication;
+        JsonNode didDocumentJsonAssertionMethod = null;
+        JsonNode didDocumentJsonCapabilityInvocation = null;
+        JsonNode didDocumentJsonCapabilityDelegation = null;
 
-			didDocumentReader = new FileReader(new File(didDocumentLocation));
+        try {
 
-			JsonNode didDocumentJsonRoot = new ObjectMapper().readTree(didDocumentReader);
-			if (log.isDebugEnabled()) log.debug("DID DOCUMENT JSON OBJECT: " + didDocumentJsonRoot);
+            didDocumentReader = new FileReader(new File(didDocumentLocation));
 
-			didDocumentJsonAuthentication = didDocumentJsonRoot.get("authentication");
-			didDocumentJsonAssertionMethod = didDocumentJsonRoot.get("assertionMethod");
-			didDocumentJsonCapabilityInvocation = didDocumentJsonRoot.get("capabilityInvocation");
-			didDocumentJsonCapabilityDelegation = didDocumentJsonRoot.get("capabilityDelegation");
-		} catch (IOException ex) {
+            JsonNode didDocumentJsonRoot = new ObjectMapper().readTree(didDocumentReader);
+            if (log.isDebugEnabled()) log.debug("DID DOCUMENT JSON OBJECT: " + didDocumentJsonRoot);
 
-			throw new RegistrationException("Cannot read DID document: " + ex.getMessage(), ex);
-		} finally {
+            didDocumentJsonAuthentication = didDocumentJsonRoot.get("authentication");
+            didDocumentJsonAssertionMethod = didDocumentJsonRoot.get("assertionMethod");
+            didDocumentJsonCapabilityInvocation = didDocumentJsonRoot.get("capabilityInvocation");
+            didDocumentJsonCapabilityDelegation = didDocumentJsonRoot.get("capabilityDelegation");
+        } catch (IOException ex) {
 
-			try {
+            throw new RegistrationException("Cannot read DID document: " + ex.getMessage(), ex);
+        } finally {
 
-				if (didDocumentReader != null) didDocumentReader.close();
-			} catch (IOException ex) {
+            try {
 
-				throw new RegistrationException("Cannot close DID document: " + ex.getMessage(), ex);
-			}
-		}
+                if (didDocumentReader != null) didDocumentReader.close();
+            } catch (IOException ex) {
 
-		// read keys document
+                throw new RegistrationException("Cannot close DID document: " + ex.getMessage(), ex);
+            }
+        }
 
-		FileReader keysDocumentReader = null;
-		Map<String, ObjectNode> keysDocumentJsonKeys = new HashMap<String, ObjectNode> ();
+        // read keys document
 
-		try {
+        FileReader keysDocumentReader = null;
+        Map<String, ObjectNode> keysDocumentJsonKeys = new HashMap<>();
 
-			keysDocumentReader = new FileReader(new File(keysDocumentLocation));
+        try {
 
-			JsonNode keysDocumentJsonRoot = new ObjectMapper().readTree(keysDocumentReader);
-			if (log.isDebugEnabled()) log.debug("KEYS DOCUMENT JSON OBJECT: " + (keysDocumentJsonRoot != null));
+            keysDocumentReader = new FileReader(new File(keysDocumentLocation));
 
-			Iterator<Map.Entry<String, JsonNode>> keysDocumentJsonFields = keysDocumentJsonRoot.fields();
+            JsonNode keysDocumentJsonRoot = new ObjectMapper().readTree(keysDocumentReader);
+            if (log.isDebugEnabled()) log.debug("KEYS DOCUMENT JSON OBJECT: " + (keysDocumentJsonRoot != null));
 
-			while (keysDocumentJsonFields.hasNext()) {
+            assert keysDocumentJsonRoot != null;
+            Iterator<Map.Entry<String, JsonNode>> keysDocumentJsonFields = keysDocumentJsonRoot.fields();
 
-				ObjectNode keysDocumentJsonKey = (ObjectNode) keysDocumentJsonFields.next().getValue();
-				TextNode keysDocumentJsonKeyId = (TextNode) keysDocumentJsonKey.get("id");
+            while (keysDocumentJsonFields.hasNext()) {
 
-				if (log.isDebugEnabled()) log.debug("Found key: " + keysDocumentJsonKeyId.asText());
+                ObjectNode keysDocumentJsonKey = (ObjectNode) keysDocumentJsonFields.next().getValue();
+                TextNode keysDocumentJsonKeyId = (TextNode) keysDocumentJsonKey.get("id");
 
-				JWK jsonWebKey = privateKeyToJWK(keysDocumentJsonKey);
-				String publicKeyDIDURL = identifierToPublicKeyDIDURL(keysDocumentJsonKey);
+                if (log.isDebugEnabled()) log.debug("Found key: " + keysDocumentJsonKeyId.asText());
 
-				keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
-				keysDocumentJsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
+                JWK jsonWebKey = privateKeyToJWK(keysDocumentJsonKey);
+                String publicKeyDIDURL = identifierToPublicKeyDIDURL(keysDocumentJsonKey);
 
-				keysDocumentJsonKeys.put(keysDocumentJsonKeyId.asText(), keysDocumentJsonKey);
-			}
-		} catch (IOException ex) {
+                keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
+                keysDocumentJsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
 
-			throw new RegistrationException("Cannot read keys document: " + ex.getMessage(), ex);
-		} finally {
+                keysDocumentJsonKeys.put(keysDocumentJsonKeyId.asText(), keysDocumentJsonKey);
+            }
+        } catch (IOException ex) {
 
-			try {
+            throw new RegistrationException("Cannot read keys document: " + ex.getMessage(), ex);
+        } finally {
 
-				if (keysDocumentReader != null) keysDocumentReader.close();
-			} catch (IOException ex) {
+            try {
 
-				throw new RegistrationException("Cannot close keys document: " + ex.getMessage(), ex);
-			}
-		}
+                if (keysDocumentReader != null) keysDocumentReader.close();
+            } catch (IOException ex) {
 
-		// REGISTRATION STATE FINISHED: IDENTIFIER
+                throw new RegistrationException("Cannot close keys document: " + ex.getMessage(), ex);
+            }
+        }
 
-		String identifier = newDid;
+        // REGISTRATION STATE FINISHED: IDENTIFIER
 
-		// REGISTRATION STATE FINISHED: SECRET
+        String identifier = newDid;
 
-		List<JsonNode> jsonKeys = new ArrayList<JsonNode> ();
-		TextNode didDocumentJsonAuthenticationId = (TextNode) didDocumentJsonAuthentication.get(0).get("id");
-		if (log.isDebugEnabled()) log.debug("Found authentication: " + didDocumentJsonAuthenticationId.asText());
+        // REGISTRATION STATE FINISHED: SECRET
 
-		ObjectNode keysDocumentJsonAuthenticationKey = keysDocumentJsonKeys.get(didDocumentJsonAuthenticationId.asText());
+        List<JsonNode> jsonKeys = new ArrayList<>();
+        TextNode didDocumentJsonAuthenticationId = (TextNode) didDocumentJsonAuthentication.get(0).get("id");
+        if (log.isDebugEnabled()) log.debug("Found authentication: " + didDocumentJsonAuthenticationId.asText());
 
-		if (keysDocumentJsonAuthenticationKey != null) {
+        ObjectNode keysDocumentJsonAuthenticationKey = keysDocumentJsonKeys.get(didDocumentJsonAuthenticationId.asText());
 
-			if (log.isDebugEnabled()) log.debug("Found authentication key: " + didDocumentJsonAuthenticationId.asText());
+        if (keysDocumentJsonAuthenticationKey != null) {
 
-			jsonKeys.add(keysDocumentJsonAuthenticationKey);
-		} else {
+            if (log.isDebugEnabled())
+                log.debug("Found authentication key: " + didDocumentJsonAuthenticationId.asText());
 
-			throw new RegistrationException("Found no authentication key: " + didDocumentJsonAuthenticationId.asText());
-		}
+            jsonKeys.add(keysDocumentJsonAuthenticationKey);
+        } else {
 
-		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
-		secret.put("keys", jsonKeys);
+            throw new RegistrationException("Found no authentication key: " + didDocumentJsonAuthenticationId.asText());
+        }
 
-		// REGISTRATION STATE FINISHED: METHOD METADATA
+        Map<String, Object> secret = new LinkedHashMap<>();
+        secret.put("keys", jsonKeys);
 
-		Map<String, Object> methodMetadata = new LinkedHashMap<String, Object> ();
-		methodMetadata.put("didDocumentLocation", didDocumentLocation);
+        // REGISTRATION STATE FINISHED: METHOD METADATA
 
-		// done
+        Map<String, Object> methodMetadata = new LinkedHashMap<>();
+        methodMetadata.put("didDocumentLocation", didDocumentLocation);
 
-		RegisterState registerState = RegisterState.build();
-		SetRegisterStateFinished.setStateFinished(registerState, identifier, secret);
-		registerState.setMethodMetadata(methodMetadata);
+        // done
 
-		return registerState;
-	}
+        RegisterState registerState = RegisterState.build();
+        SetRegisterStateFinished.setStateFinished(registerState, identifier, secret);
+        registerState.setMethodMetadata(methodMetadata);
 
-	@Override
-	public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
+        return registerState;
+    }
 
-		throw new RuntimeException("Not implemented.");
-	}
+    @Override
+    public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
 
-	@Override
-	public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
+        throw new RuntimeException("Not implemented.");
+    }
 
-		throw new RuntimeException("Not implemented.");
-	}
+    /*
+     * Helper methods
+     */
 
-	@Override
-	public Map<String, Object> properties() {
+    @Override
+    public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
 
-		return this.getProperties();
-	}
+        throw new RegistrationException("This method does not support deactivation.");
+    }
 
-	/*
-	 * Helper methods
-	 */
+    @Override
+    public Map<String, Object> properties() {
 
-	private static JWK privateKeyToJWK(ObjectNode jsonKey) {
+        return this.getProperties();
+    }
 
-		byte[] publicKeyBytes = Base58.decode(((TextNode) jsonKey.get("publicKeyBase58")).asText());
-		byte[] privateKeyBytes = Base58.decode(((TextNode) jsonKey.get("privateKeyBase58")).asText());
-		String kid = null;
-		String use = null;
+    /*
+     * Getters and setters
+     */
 
-		return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, kid, use);
-	}
+    public Map<String, Object> getProperties() {
 
-	private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
+        return this.properties;
+    }
 
-		return ((TextNode) jsonKey.get("id")).asText();
-	}
+    public void setProperties(Map<String, Object> properties) {
 
-	/*
-	 * Getters and setters
-	 */
+        this.properties = properties;
+        this.configureFromProperties();
+    }
 
-	public Map<String, Object> getProperties() {
+    public String getTrustAnchorSeed() {
 
-		return this.properties;
-	}
+        return this.trustAnchorSeed;
+    }
 
-	public void setProperties(Map<String, Object> properties) {
+    public void setTrustAnchorSeed(String trustAnchorSeed) {
 
-		this.properties = properties;
-		this.configureFromProperties();
-	}
-
-	public String getTrustAnchorSeed() {
-
-		return this.trustAnchorSeed;
-	}
-
-	public void setTrustAnchorSeed(String trustAnchorSeed) {
-
-		this.trustAnchorSeed = trustAnchorSeed;
-	}
+        this.trustAnchorSeed = trustAnchorSeed;
+    }
 }
