@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -12,6 +13,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.sun.istack.NotNull;
+import did.DIDDocument;
+import info.weboftrust.ldsignatures.suites.SignatureSuite;
+import info.weboftrust.ldsignatures.verifier.LdVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +31,7 @@ import io.leonard.Base58;
 import uniregistrar.RegistrationException;
 import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
+import uniregistrar.driver.did.v1.dto.V1DidResolveDoc;
 import uniregistrar.request.DeactivateRequest;
 import uniregistrar.request.RegisterRequest;
 import uniregistrar.request.UpdateRequest;
@@ -75,6 +81,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
         byte[] publicKeyBytes = Base58.decode(jsonKey.get("publicKeyBase58").asText());
         byte[] privateKeyBytes = Base58.decode(jsonKey.get("privateKeyBase58").asText());
+
+        //TODO: Ask markus why he creates references to the null objects
         String kid = null;
         String use = null;
 
@@ -123,7 +131,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
         try {
 
-            StringBuilder command = new StringBuilder("/opt/did-cli/did generate");
+            StringBuilder command = new StringBuilder("external/did-cli/did generate");
             command.append(" -t " + "veres");
             if (hostname != null) command.append(" -H ").append(hostname);
             if (keytype != null) command.append(" -k ").append(keytype);
@@ -157,9 +165,14 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
                 if (line.startsWith("[Veres One][test mode] Generated a new Veres One DID: ")) {
 
+//                    newDid = line.substring("[Veres One][test mode] Generated a new Veres One DID: ".length());
+//                    didDocumentLocation = "/root/.dids/veres-test/registered/" + newDid.replace(":", "%3A") + ".json";
+//                    keysDocumentLocation = "/root/.dids/keys/" + newDid.replace(":", "%3A") + ".keys.json";
+
+                    //for local test
                     newDid = line.substring("[Veres One][test mode] Generated a new Veres One DID: ".length());
-                    didDocumentLocation = "/root/.dids/veres-test/registered/" + newDid.replace(":", "%3A") + ".json";
-                    keysDocumentLocation = "/root/.dids/keys/" + newDid.replace(":", "%3A") + ".keys.json";
+                    didDocumentLocation = "/home/cn/.dids/veres-test/registered/" + newDid.replace(":", "%3A") + ".json";
+                    keysDocumentLocation = "/home/cn/.dids/keys/" + newDid.replace(":", "%3A") + ".keys.json";
                 }
             }
 
@@ -174,6 +187,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                 stdOutReader.close();
                 stdErrReader.close();
             } catch (IOException ex) {
+                //FIXME
                 throw new RegistrationException("Stream problem: " + ex.getMessage(), ex);
             }
         }
@@ -215,7 +229,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
                 if (didDocumentReader != null) didDocumentReader.close();
             } catch (IOException ex) {
-
+                //FIXME
                 throw new RegistrationException("Cannot close DID document: " + ex.getMessage(), ex);
             }
         }
@@ -259,7 +273,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
                 if (keysDocumentReader != null) keysDocumentReader.close();
             } catch (IOException ex) {
-
+                //FIXME: Throws exception in finally block
                 throw new RegistrationException("Cannot close keys document: " + ex.getMessage(), ex);
             }
         }
@@ -307,6 +321,55 @@ public class DidV1Driver extends AbstractDriver implements Driver {
     @Override
     public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
 
+//        DIDDocument signedReq = updateRequest.getDidDocument();
+
+        String proofType = String.valueOf(
+                updateRequest
+                        .getSecret()
+                        .get("type"));
+
+        if (proofType == null || !proofType.isEmpty()) {
+            throw new RegistrationException("Proof type is empty.");
+        }
+
+        // FIXME: Input check
+        // Secret is holding the proof here
+        LdVerifier<? extends SignatureSuite> verifier = LdVerifier.ldVerifierForSignatureSuite(
+                String.valueOf(
+                        updateRequest
+                                .getSecret()
+                                .get("type")));
+
+        boolean verified = false;
+        try {
+            verified = verifier
+                    .verify(
+                            (LinkedHashMap<String, Object>) updateRequest
+                                    .getDidDocument()
+                                    .getJsonLdObject());
+        } catch (GeneralSecurityException e) {
+            log.error(e.getMessage());
+            throw new RegistrationException(e.getCause());
+        }
+        if (!verified) {
+            throw new RegistrationException("Signature verification error.");
+        }
+
+        V1DidResolveDoc toUpdate = null;
+        DIDDocument newDidDoc = null;
+        ObjectMapper mapper = new ObjectMapper();
+        String didId = updateRequest.getIdentifier();
+        String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
+
+        try {
+            toUpdate = mapper.readValue(new File(didFilePath), V1DidResolveDoc.class);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new RegistrationException();
+        }
+
+        //TODO: Parse the add/remove operations..
+
         throw new RuntimeException("Not implemented.");
     }
 
@@ -316,7 +379,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
     @Override
     public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
-
+        //TODO: This method is not supported -> Prepare a suitable response
         throw new RegistrationException("This method does not support deactivation.");
     }
 
