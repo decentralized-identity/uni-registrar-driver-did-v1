@@ -226,17 +226,16 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 			while (keysDocumentJsonFields.hasNext()) {
 
 				ObjectNode keysDocumentJsonKey = (ObjectNode) keysDocumentJsonFields.next().getValue();
-				TextNode keysDocumentJsonKeyId = (TextNode) keysDocumentJsonKey.get("id");
-
-				if (log.isDebugEnabled()) log.debug("Found key: " + keysDocumentJsonKeyId.asText());
 
 				JWK jsonWebKey = privateKeyToJWK(keysDocumentJsonKey);
-				String publicKeyDIDURL = identifierToPublicKeyDIDURL(keysDocumentJsonKey);
+				String keyUrl = identifierToKeyUrl(keysDocumentJsonKey);
 
+				if (log.isDebugEnabled()) log.debug("Found key: " + keyUrl);
+
+				keysDocumentJsonKey.put("id", keyUrl);
 				keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
-				keysDocumentJsonKey.put("publicKeyDIDURL", publicKeyDIDURL);
 
-				keysDocumentJsonKeys.put(keysDocumentJsonKeyId.asText(), keysDocumentJsonKey);
+				keysDocumentJsonKeys.put(keyUrl, keysDocumentJsonKey);
 			}
 		} catch (IOException ex) {
 
@@ -259,20 +258,10 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		// REGISTRATION STATE FINISHED: SECRET
 
 		List<JsonNode> jsonKeys = new ArrayList<JsonNode> ();
-		TextNode didDocumentJsonAuthenticationId = (TextNode) didDocumentJsonAuthentication.get(0).get("id");
-		if (log.isDebugEnabled()) log.debug("Found authentication: " + didDocumentJsonAuthenticationId.asText());
-
-		ObjectNode keysDocumentJsonAuthenticationKey = keysDocumentJsonKeys.get(didDocumentJsonAuthenticationId.asText());
-
-		if (keysDocumentJsonAuthenticationKey != null) {
-
-			if (log.isDebugEnabled()) log.debug("Found authentication key: " + didDocumentJsonAuthenticationId.asText());
-
-			jsonKeys.add(keysDocumentJsonAuthenticationKey);
-		} else {
-
-			throw new RegistrationException("Found no authentication key: " + didDocumentJsonAuthenticationId.asText());
-		}
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonAuthentication, "authentication", jsonKeys);
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonAssertionMethod, "assertionMethod", jsonKeys);
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityInvocation, "capabilityInvocation", jsonKeys);
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityDelegation, "capabilityDelegation", jsonKeys);
 
 		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
 		secret.put("keys", jsonKeys);
@@ -313,17 +302,36 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 	 * Helper methods
 	 */
 
+	private static void findSecretKeys(Map<String, ObjectNode> keysDocumentJsonKeys, JsonNode didDocumentJsonProofPurpose, String proofPurpose, List<JsonNode> jsonKeys) throws RegistrationException {
+
+		TextNode didDocumentJsonProofPurposeId = (TextNode) didDocumentJsonProofPurpose.get(0).get("id");
+		if (log.isDebugEnabled()) log.debug("Found proof purpose " + proofPurpose + ": " + didDocumentJsonProofPurposeId.asText());
+
+		ObjectNode keysDocumentJsonProofPurposeKey = keysDocumentJsonKeys.get(didDocumentJsonProofPurposeId.asText());
+
+		if (keysDocumentJsonProofPurposeKey != null) {
+
+			if (log.isDebugEnabled()) log.debug("Found proof purpose key " + proofPurpose + ": " + didDocumentJsonProofPurposeId.asText());
+
+			keysDocumentJsonProofPurposeKey.putArray("purpose").add(proofPurpose);
+			jsonKeys.add(keysDocumentJsonProofPurposeKey);
+		} else {
+
+			throw new RegistrationException("Found no proof purpose key " + proofPurpose + ": " + didDocumentJsonProofPurposeId.asText());
+		}
+	}
+
 	private static JWK privateKeyToJWK(ObjectNode jsonKey) {
 
-		byte[] publicKeyBytes = Base58.decode(((TextNode) jsonKey.get("publicKeyBase58")).asText());
 		byte[] privateKeyBytes = Base58.decode(((TextNode) jsonKey.get("privateKeyBase58")).asText());
+		byte[] publicKeyBytes = Base58.decode(((TextNode) jsonKey.get("publicKeyBase58")).asText());
 		String kid = null;
 		String use = null;
 
 		return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, kid, use);
 	}
 
-	private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
+	private static String identifierToKeyUrl(ObjectNode jsonKey) {
 
 		return ((TextNode) jsonKey.get("id")).asText();
 	}
