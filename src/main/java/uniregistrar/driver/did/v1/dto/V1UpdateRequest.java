@@ -1,11 +1,12 @@
 package uniregistrar.driver.did.v1.dto;
 
-import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import uniregistrar.driver.did.v1.dto.parts.PatchItem;
 import uniregistrar.driver.did.v1.dto.parts.ProofItem;
 
-public class V1UpdatePost {
+import java.util.List;
+
+public class V1UpdateRequest {
 
 	@JsonProperty("patch")
 	private List<PatchItem> patch;

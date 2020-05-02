@@ -1,0 +1,41 @@
+{
+  "@context": "https://w3id.org/veres-one/v1",
+  "type": "UpdateWebLedgerRecord",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/authentication",
+      "value": {
+        "type": "Ed25519SignatureAuthentication2018",
+        "publicKey": {
+          "id": "did:v1:test:nym:z6MkffYv3Wk2cZBSyy1BmeqiQM9FjPDwL3Fzv9P73CgYKN35#authn-key-2",
+          "type": "Ed25519SigningKey2018",
+          "controller": "did:v1:test:nym:z6MkffYv3Wk2cZBSyy1BmeqiQM9FjPDwL3Fzv9P73CgYKN35",
+          "publicKeyBase58": "BpJk2oxtkm99ubKqhtLF7fB2fCM1bETgpJLFg8QEuQK2"
+        }
+      }
+    },
+    {
+      "op": "remove",
+      "path": "/services/3"
+    }
+  ],
+  "proof": [
+    {
+      "type": "Ed25519Signature2018",
+      "created": "2018-02-24T22:23:42Z",
+      "creator": "did:v1:test:nym:z6MkffYv3Wk2cZBSyy1BmeqiQM9FjPDwL3Fzv9P73CgYKN35#z6MkwJZbTCwY6JeSP924JrDD6VNxMfVminyFstHaDUTQonvx",
+      "capability": "did:v1:test:nym:z6MkffYv3Wk2cZBSyy1BmeqiQM9FjPDwL3Fzv9P73CgYKN35",
+      "capabilityAction": "UpdateDid",
+      "jws": "eyJjcml0IjpbImI2NCJdLCJiNjQiOmZhbHNlLCJhbGciOiJFZERTQSJ9..LDqakb-NlgEZ9A1OnjhOglUi5z3lT2QVRY5r9B-mvcadk8jAI2SVnZ76V6uj-ULWxiUiljGAaPchQnRtAd-fCg",
+      "proofPurpose": "invokeCapability"
+    },
+    {
+      "type": "EquihashProof2017",
+      "equihashParameterN": 64,
+      "equihashParameterK": 3,
+      "nonce": "AQAAAA==",
+      "proofValue": "AAAOgAA0jcAEAAXbA1EsQMgAAGfF7TwABAfNiAA78QA="
+    }
+  ]
+}

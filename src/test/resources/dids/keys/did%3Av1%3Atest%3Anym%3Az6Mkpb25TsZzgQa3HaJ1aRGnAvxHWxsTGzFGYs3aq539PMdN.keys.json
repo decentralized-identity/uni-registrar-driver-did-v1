@@ -1,0 +1,30 @@
+{
+  "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkvYzc4dZ7oJ2FTcN9j2t7MoXh7bzwL7gi8H9v5d1UJhVS": {
+    "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkvYzc4dZ7oJ2FTcN9j2t7MoXh7bzwL7gi8H9v5d1UJhVS",
+    "type": "Ed25519VerificationKey2018",
+    "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+    "publicKeyBase58": "H6jZUPJgTkXnM7XT3TvGWhyhJ2j5vESMSGEzFM3TPUi4",
+    "privateKeyBase58": "2yjcqAaBQXwGE7LuWauCciJbmHidFRxgpkzHjAsM9oa3K3sLsN85tnnXAwuUdqvivitKBtSV4RQZ7QtXXtkFDyPn"
+  },
+  "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN": {
+    "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+    "type": "Ed25519VerificationKey2018",
+    "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+    "publicKeyBase58": "B8m2sdKZLs5aB5TJtrJwKqQHhPbbs6zurr8ezo58U8qz",
+    "privateKeyBase58": "3yPPEiS6raga3t8vE3TB2kfKALskTSs9u4zQyy2W5Eijc7FUTLjUVzboNHLHuovp9o4AB3kuB7TmYtrtunsYaW7v"
+  },
+  "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkvYjELyZX8HXzcLCaJKFfKqBsp6fAVKexfc5FnEyT1sLv": {
+    "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkvYjELyZX8HXzcLCaJKFfKqBsp6fAVKexfc5FnEyT1sLv",
+    "type": "Ed25519VerificationKey2018",
+    "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+    "publicKeyBase58": "H6UBkjK5nk3XVqMsckHpUjdszXPK5SQbybAKwy1S6eZY",
+    "privateKeyBase58": "cGCuprKdATaoMhPGEhztUvNAczjWNUdNyXKKwdrheVSsrSn6coV4x4NTRzbuihZhkvXE31jx1EtatFAYeCXPaFk"
+  },
+  "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkobMBEYsvpmNz6NvVjf8yMQnzG2Ap3MtZXNdBV5S4YpaX": {
+    "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkobMBEYsvpmNz6NvVjf8yMQnzG2Ap3MtZXNdBV5S4YpaX",
+    "type": "Ed25519VerificationKey2018",
+    "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+    "publicKeyBase58": "A968eJdVVDtWyt5o46B8WKEzSStxdUeCqMiFeoU3dbo9",
+    "privateKeyBase58": "v3EmvLrZiQtQgYwCiTA1G48dV43btrQd2RrLAF31QXcusWMUc522uJxUa5bsRvho6KKjH9uAhBfzhyL9KxoBg5h"
+  }
+}

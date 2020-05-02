@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PublicKey{
 
-	@JsonProperty("owner")
-	private String owner;
+	@JsonProperty("controller")
+	private String controller;
 
 	@JsonProperty("publicKeyBase58")
 	private String publicKeyBase58;
@@ -16,12 +16,12 @@ public class PublicKey{
 	@JsonProperty("type")
 	private String type;
 
-	public void setOwner(String owner){
-		this.owner = owner;
+	public void setController(String controller){
+		this.controller = controller;
 	}
 
-	public String getOwner(){
-		return owner;
+	public String getController(){
+		return controller;
 	}
 
 	public void setPublicKeyBase58(String publicKeyBase58){
@@ -52,7 +52,7 @@ public class PublicKey{
  	public String toString(){
 		return 
 			"PublicKey{" + 
-			"owner = '" + owner + '\'' + 
+			"owner = '" + controller + '\'' +
 			",publicKeyBase58 = '" + publicKeyBase58 + '\'' + 
 			",id = '" + id + '\'' + 
 			",type = '" + type + '\'' + 

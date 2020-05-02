@@ -1,0 +1,39 @@
+{
+  "@context": [
+    "https://w3id.org/did/v0.11",
+    "https://w3id.org/veres-one/v1"
+  ],
+  "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+  "authentication": [
+    {
+      "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkvYzc4dZ7oJ2FTcN9j2t7MoXh7bzwL7gi8H9v5d1UJhVS",
+      "type": "Ed25519VerificationKey2018",
+      "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+      "publicKeyBase58": "H6jZUPJgTkXnM7XT3TvGWhyhJ2j5vESMSGEzFM3TPUi4"
+    }
+  ],
+  "capabilityInvocation": [
+    {
+      "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+      "type": "Ed25519VerificationKey2018",
+      "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+      "publicKeyBase58": "B8m2sdKZLs5aB5TJtrJwKqQHhPbbs6zurr8ezo58U8qz"
+    }
+  ],
+  "capabilityDelegation": [
+    {
+      "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkvYjELyZX8HXzcLCaJKFfKqBsp6fAVKexfc5FnEyT1sLv",
+      "type": "Ed25519VerificationKey2018",
+      "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+      "publicKeyBase58": "H6UBkjK5nk3XVqMsckHpUjdszXPK5SQbybAKwy1S6eZY"
+    }
+  ],
+  "assertionMethod": [
+    {
+      "id": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN#z6MkobMBEYsvpmNz6NvVjf8yMQnzG2Ap3MtZXNdBV5S4YpaX",
+      "type": "Ed25519VerificationKey2018",
+      "controller": "did:v1:test:nym:z6Mkpb25TsZzgQa3HaJ1aRGnAvxHWxsTGzFGYs3aq539PMdN",
+      "publicKeyBase58": "A968eJdVVDtWyt5o46B8WKEzSStxdUeCqMiFeoU3dbo9"
+    }
+  ]
+}
