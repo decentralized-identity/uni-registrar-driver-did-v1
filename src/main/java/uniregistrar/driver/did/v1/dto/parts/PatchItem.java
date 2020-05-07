@@ -13,7 +13,7 @@ public class PatchItem {
     private String path;
 
     @JsonProperty("value")
-    private Value value;
+    private PatchValue patchValue;
 
     public String getOp() {
         return op;
@@ -31,12 +31,12 @@ public class PatchItem {
         this.path = path;
     }
 
-    public Value getValue() {
-        return value;
+    public PatchValue getPatchValue() {
+        return patchValue;
     }
 
-    public void setValue(Value value) {
-        this.value = value;
+    public void setPatchValue(PatchValue patchValue) {
+        this.patchValue = patchValue;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class PatchItem {
                 "PatchItem{" +
                         "op = '" + op + '\'' +
                         ",path = '" + path + '\'' +
-                        ",value = '" + value + '\'' +
+                        ",value = '" + patchValue + '\'' +
                         "}";
     }
 }

@@ -63,15 +63,15 @@
                             <systemProperties>
                                 <systemProperty>
                                     <name>jetty.port</name>
-                                    <value>9080</value>
+                                    <patchValue>9080</patchValue>
                                 </systemProperty>
                                 <systemProperty>
                                     <name>slf4j</name>
-                                    <value>true</value>
+                                    <patchValue>true</patchValue>
                                 </systemProperty>
                                 <systemProperty>
                                     <name>log4j.configuration</name>
-                                    <value>file:${basedir}/src/test/resources/log4j.properties</value>
+                                    <patchValue>file:${basedir}/src/test/resources/log4j.properties</patchValue>
                                 </systemProperty>
                             </systemProperties>
                             <webApp>

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Value {
+public class PatchValue {
 
     @JsonProperty("publicKey")
     private PublicKeyItem publicKeyItem;
@@ -70,4 +70,9 @@ public class Value {
     public void setType(String type) {
         this.type = type;
     }
+
+//    public Map<String,Object> getJsonLd(){
+//        Map<String,Object> map = new HashMap<>();
+//        map.put()
+//    }
 }

@@ -1,11 +1,13 @@
 package uniregistrar.driver.did.v1;
 
 import com.danubetech.keyformats.PrivateKey_to_JWK;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.nimbusds.jose.jwk.JWK;
+import did.Authentication;
 import did.DIDDocument;
 import info.weboftrust.ldsignatures.LdSignature;
 import info.weboftrust.ldsignatures.verifier.Ed25519Signature2018LdVerifier;
@@ -18,7 +20,8 @@ import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
 import uniregistrar.driver.did.v1.dto.V1DIDDoc;
 import uniregistrar.driver.did.v1.dto.V1UpdateRequest;
-import uniregistrar.driver.did.v1.dto.parts.InvokeCapabilityItem;
+import uniregistrar.driver.did.v1.dto.parts.CapabilityInvocationItem;
+import uniregistrar.driver.did.v1.dto.parts.PatchItem;
 import uniregistrar.driver.did.v1.dto.parts.ProofItem;
 import uniregistrar.driver.did.v1.dto.parts.PublicKeyItem;
 import uniregistrar.driver.did.v1.util.V1;
@@ -78,11 +81,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         byte[] publicKeyBytes = Base58.decode(jsonKey.get("publicKeyBase58").asText());
         byte[] privateKeyBytes = Base58.decode(jsonKey.get("privateKeyBase58").asText());
 
-        //TODO: Ask markus why he creates references to the null objects
-        String kid = null;
-        String use = null;
 
-        return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, kid, use);
+        return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, null, null);
     }
 
     private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
@@ -309,10 +309,10 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
     private ProofItem validateUpdateRequest(V1UpdateRequest request) throws RegistrationException {
 
-        // TODO: No idea if their "UpdateWebLedgerRecord" should be the only one to accept, so...
-        if (!request.getType().startsWith("Update")) {
-            throw new RegistrationException("Wrong request type!");
-        }
+        // Not checking with our UpdateRequest class, since it is an update request
+//        if (!request.getType().startsWith("Update")) {
+//            throw new RegistrationException("Wrong request type!");
+//        }
 
         if (request.getProof() == null || request.getProof().size() < 1) {
             throw new RegistrationException("Request does not contain any proof key");
@@ -355,15 +355,25 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         final V1DIDDoc docToUpdate = mapper.convertValue(toUpdate, V1DIDDoc.class);
 
         List<PublicKeyItem> publicKeyItems = new ArrayList<>();
-        final List<InvokeCapabilityItem> capabilityItems = docToUpdate.getInvokeCapability();
+        final List<CapabilityInvocationItem> capabilityItems = docToUpdate.getCapabilityInvocation();
 
         // Get all of the public keys that can invoke any change
-        for (InvokeCapabilityItem item : capabilityItems) {
-            if (item.getType() != null && item.getType().equalsIgnoreCase("UpdateDid")) {
-                if (item.getPublicKeyItem() == null) {
+        for (CapabilityInvocationItem item : capabilityItems) {
+//            if (item.getType() != null && item.getType().equalsIgnoreCase("UpdateDid")) {
+                if (item.getPublicKeyItem() != null) {
                     publicKeyItems.add(item.getPublicKeyItem());
+                } else
+                {
+                    final PublicKeyItem tmp = new PublicKeyItem();
+                    tmp.setController(item.getController());
+                    tmp.setId(item.getId());
+                    tmp.setOwner(item.getOwner());
+                    tmp.setPublicKeyBase58(item.getPublicKeyBase58());
+                    tmp.setType(item.getType());
+
+                    publicKeyItems.add(tmp);
                 }
-            }
+//            }
         }
 
         if (publicKeyItems.size() < 1) {
@@ -387,7 +397,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         boolean verified = false;
 
         for (PublicKeyItem publicKeyItem : publicKeyItems) {
-            if (proof.getType().equals("Ed25519VerificationKey2018")) {
+            if (proof.getType().equals("Ed25519Signature2018")) {
                 byte[] pubKeyBytes = Base58.decode(publicKeyItem.getPublicKeyBase58());
                 Ed25519Signature2018LdVerifier verifier = new Ed25519Signature2018LdVerifier(pubKeyBytes);
                 verified = verifier.verify((LinkedHashMap<String, Object>) toUpdate.getJsonLdObject(), signature);
@@ -417,8 +427,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         final ProofItem proof = mapper.convertValue(updateRequest.getSecret(), ProofItem.class);
 
         final String didId = updateRequest.getIdentifier();
-//        final String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
-        final String didFilePath = "/root/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
+        final String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
+//        final String didFilePath = "/root/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
 
 
         DIDDocument toUpdate;
@@ -459,18 +469,48 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             throw new RegistrationException("Cannot read the DID Doc!");
         }
 
-        //TODO: Final step -> Navigate JsonNode's and add/remove according to the patch
-//        for (PatchItem patch : updateDTO.getPatch()) {
-//            switch (patch.getOp()) {
-//                case "add":
-//                    if (patch.getOp().contains("authentication")) {
-//                        Map<String, Object> auth = mapper.convertValue(patch.getValue(), Map.class);
+        List<PatchItem> patchItems = mapper.convertValue(updateRequest.getOptions().get("patch"),new TypeReference<List<PatchItem>>(){});
+
+//        TODO: Final step -> Navigate JsonNode's and add/remove according to the patch
+        for (PatchItem item : patchItems) {
+            switch (item.getOp()) {
+                case "add":
+                    if (item.getPath().contains("authentication")) {
+                        Authentication auth = mapper.convertValue(item.getPatchValue(), Authentication.class);
+//                        Map<String, Object> auth = mapper.convertValue(item.getPatchValue(), new TypeReference<Map<String, Object>>() {});
+
 //                        toUpdate.getAuthentications().add(Authentication.build(auth));
+
+                        List<Authentication> auths = new ArrayList<>(toUpdate.getAuthentications());
+                        auths.add(auth);
+                    }
+                    break;
+                case "remove":
+//                    if(item.getPath().contains("services")){
+//                        int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) -1;
+//                        toUpdate.getServices().remove(index);
 //                    }
-//                case "remove":
-//                default:
-//            }
+                    break;
+                default:
+            }
+        }
+
+//        final ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
+//        String resultAsJson = "";
+//        try {
+//            resultAsJson = mapper.writeValueAsString(toUpdate);
+//        } catch (JsonProcessingException e) {
+//            e.printStackTrace();
 //        }
+//
+//        System.out.println(resultAsJson);
+        try {
+            mapper.writeValue(new File("/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/result.json"), toUpdate);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        UpdateState upState = UpdateState.build();
 
         return null;
     }
