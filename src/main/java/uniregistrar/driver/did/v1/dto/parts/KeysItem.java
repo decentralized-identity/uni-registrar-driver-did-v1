@@ -1,97 +1,90 @@
 package uniregistrar.driver.did.v1.dto.parts;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class KeysItem{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class KeysItem {
 
-	@JsonProperty("publicKeyBase58")
-	private String publicKeyBase58;
+    @JsonProperty("publicKeyBase58")
+    private String publicKeyBase58;
 
-	@JsonProperty("controller")
-	private String controller;
+    @JsonProperty("controller")
+    private String controller;
+    @JsonProperty("owner")
+    private String owner;
+    @JsonProperty("privateKeyJwk")
+    private PrivateKeyJwk privateKeyJwk;
+    @JsonProperty("id")
+    private String id;
+    @JsonProperty("publicKeyDIDURL")
+    private String publicKeyDIDURL;
+    @JsonProperty("type")
+    private String type;
+    @JsonProperty("privateKeyBase58")
+    private String privateKeyBase58;
 
-	@JsonProperty("privateKeyJwk")
-	private PrivateKeyJwk privateKeyJwk;
+    public String getOwner() {
+        return owner;
+    }
 
-	@JsonProperty("id")
-	private String id;
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
 
-	@JsonProperty("publicKeyDIDURL")
-	private String publicKeyDIDURL;
+    public String getPublicKeyBase58() {
+        return publicKeyBase58;
+    }
 
-	@JsonProperty("type")
-	private String type;
+    public void setPublicKeyBase58(String publicKeyBase58) {
+        this.publicKeyBase58 = publicKeyBase58;
+    }
 
-	@JsonProperty("privateKeyBase58")
-	private String privateKeyBase58;
+    public String getController() {
+        return controller;
+    }
 
-	public void setPublicKeyBase58(String publicKeyBase58){
-		this.publicKeyBase58 = publicKeyBase58;
-	}
+    public void setController(String controller) {
+        this.controller = controller;
+    }
 
-	public String getPublicKeyBase58(){
-		return publicKeyBase58;
-	}
+    public PrivateKeyJwk getPrivateKeyJwk() {
+        return privateKeyJwk;
+    }
 
-	public void setController(String controller){
-		this.controller = controller;
-	}
+    public void setPrivateKeyJwk(PrivateKeyJwk privateKeyJwk) {
+        this.privateKeyJwk = privateKeyJwk;
+    }
 
-	public String getController(){
-		return controller;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setPrivateKeyJwk(PrivateKeyJwk privateKeyJwk){
-		this.privateKeyJwk = privateKeyJwk;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public PrivateKeyJwk getPrivateKeyJwk(){
-		return privateKeyJwk;
-	}
+    public String getPublicKeyDIDURL() {
+        return publicKeyDIDURL;
+    }
 
-	public void setId(String id){
-		this.id = id;
-	}
+    public void setPublicKeyDIDURL(String publicKeyDIDURL) {
+        this.publicKeyDIDURL = publicKeyDIDURL;
+    }
 
-	public String getId(){
-		return id;
-	}
+    public String getType() {
+        return type;
+    }
 
-	public void setPublicKeyDIDURL(String publicKeyDIDURL){
-		this.publicKeyDIDURL = publicKeyDIDURL;
-	}
+    public void setType(String type) {
+        this.type = type;
+    }
 
-	public String getPublicKeyDIDURL(){
-		return publicKeyDIDURL;
-	}
+    public String getPrivateKeyBase58() {
+        return privateKeyBase58;
+    }
 
-	public void setType(String type){
-		this.type = type;
-	}
-
-	public String getType(){
-		return type;
-	}
-
-	public void setPrivateKeyBase58(String privateKeyBase58){
-		this.privateKeyBase58 = privateKeyBase58;
-	}
-
-	public String getPrivateKeyBase58(){
-		return privateKeyBase58;
-	}
-
-	@Override
- 	public String toString(){
-		return 
-			"KeysItem{" + 
-			"publicKeyBase58 = '" + publicKeyBase58 + '\'' + 
-			",controller = '" + controller + '\'' + 
-			",privateKeyJwk = '" + privateKeyJwk + '\'' + 
-			",id = '" + id + '\'' + 
-			",publicKeyDIDURL = '" + publicKeyDIDURL + '\'' + 
-			",type = '" + type + '\'' + 
-			",privateKeyBase58 = '" + privateKeyBase58 + '\'' + 
-			"}";
-		}
+    public void setPrivateKeyBase58(String privateKeyBase58) {
+        this.privateKeyBase58 = privateKeyBase58;
+    }
 }

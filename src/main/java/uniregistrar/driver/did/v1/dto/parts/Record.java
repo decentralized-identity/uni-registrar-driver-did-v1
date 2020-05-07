@@ -1,74 +1,65 @@
 package uniregistrar.driver.did.v1.dto.parts;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Record{
+import java.util.List;
 
-	@JsonProperty("grantCapability")
-	private List<GrantCapabilityItem> grantCapability;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Record {
 
-	@JsonProperty("id")
-	private String id;
+    @JsonProperty("grantCapability")
+    private List<GrantCapabilityItem> grantCapability;
 
-	@JsonProperty("@context")
-	private String context;
+    @JsonProperty("id")
+    private String id;
 
-	@JsonProperty("invokeCapability")
-	private List<InvokeCapabilityItem> invokeCapability;
+    @JsonProperty("@context")
+    private String context;
 
-	@JsonProperty("authentication")
-	private List<AuthenticationItem> authentication;
+    @JsonProperty("invokeCapability")
+    private List<InvokeCapabilityItem> invokeCapability;
 
-	public void setGrantCapability(List<GrantCapabilityItem> grantCapability){
-		this.grantCapability = grantCapability;
-	}
+    @JsonProperty("authentication")
+    private List<AuthenticationItem> authentication;
 
-	public List<GrantCapabilityItem> getGrantCapability(){
-		return grantCapability;
-	}
+    public List<GrantCapabilityItem> getGrantCapability() {
+        return grantCapability;
+    }
 
-	public void setId(String id){
-		this.id = id;
-	}
+    public void setGrantCapability(List<GrantCapabilityItem> grantCapability) {
+        this.grantCapability = grantCapability;
+    }
 
-	public String getId(){
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setContext(String context){
-		this.context = context;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public String getContext(){
-		return context;
-	}
+    public String getContext() {
+        return context;
+    }
 
-	public void setInvokeCapability(List<InvokeCapabilityItem> invokeCapability){
-		this.invokeCapability = invokeCapability;
-	}
+    public void setContext(String context) {
+        this.context = context;
+    }
 
-	public List<InvokeCapabilityItem> getInvokeCapability(){
-		return invokeCapability;
-	}
+    public List<InvokeCapabilityItem> getInvokeCapability() {
+        return invokeCapability;
+    }
 
-	public void setAuthentication(List<AuthenticationItem> authentication){
-		this.authentication = authentication;
-	}
+    public void setInvokeCapability(List<InvokeCapabilityItem> invokeCapability) {
+        this.invokeCapability = invokeCapability;
+    }
 
-	public List<AuthenticationItem> getAuthentication(){
-		return authentication;
-	}
+    public List<AuthenticationItem> getAuthentication() {
+        return authentication;
+    }
 
-	@Override
- 	public String toString(){
-		return 
-			"Record{" + 
-			"grantCapability = '" + grantCapability + '\'' + 
-			",id = '" + id + '\'' + 
-			",@context = '" + context + '\'' + 
-			",invokeCapability = '" + invokeCapability + '\'' + 
-			",authentication = '" + authentication + '\'' + 
-			"}";
-		}
+    public void setAuthentication(List<AuthenticationItem> authentication) {
+        this.authentication = authentication;
+    }
 }

@@ -1,27 +1,22 @@
 package uniregistrar.driver.did.v1.dto;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import uniregistrar.driver.did.v1.dto.parts.KeysItem;
 
-public class Secret{
+import java.util.List;
 
-	@JsonProperty("keys")
-	private List<KeysItem> keys;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Secret {
 
-	public void setKeys(List<KeysItem> keys){
-		this.keys = keys;
-	}
+    @JsonProperty("keys")
+    private List<KeysItem> keys;
 
-	public List<KeysItem> getKeys(){
-		return keys;
-	}
+    public List<KeysItem> getKeys() {
+        return keys;
+    }
 
-	@Override
- 	public String toString(){
-		return 
-			"Secret{" + 
-			"keys = '" + keys + '\'' + 
-			"}";
-		}
+    public void setKeys(List<KeysItem> keys) {
+        this.keys = keys;
+    }
 }

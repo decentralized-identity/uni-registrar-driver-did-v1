@@ -4,23 +4,28 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GrantCapabilityItem {
+public class CapabilityInvocationItem {
 
     @JsonProperty("publicKey")
     private PublicKeyItem publicKeyItem;
-
     @JsonProperty("publicKeyBase58")
     private String publicKeyBase58;
-
     @JsonProperty("controller")
     private String controller;
-
     @JsonProperty("id")
     private String id;
-    @JsonProperty("owner")
-    private String owner;
     @JsonProperty("type")
     private String type;
+    @JsonProperty("owner")
+    private String owner;
+
+    public PublicKeyItem getPublicKeyItem() {
+        return publicKeyItem;
+    }
+
+    public void setPublicKeyItem(PublicKeyItem publicKeyItem) {
+        this.publicKeyItem = publicKeyItem;
+    }
 
     public String getOwner() {
         return owner;
@@ -52,14 +57,6 @@ public class GrantCapabilityItem {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public PublicKeyItem getPublicKeyItem() {
-        return publicKeyItem;
-    }
-
-    public void setPublicKeyItem(PublicKeyItem publicKeyItem) {
-        this.publicKeyItem = publicKeyItem;
     }
 
     public String getType() {

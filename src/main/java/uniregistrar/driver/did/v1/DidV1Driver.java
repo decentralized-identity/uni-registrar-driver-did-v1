@@ -16,12 +16,11 @@ import org.slf4j.LoggerFactory;
 import uniregistrar.RegistrationException;
 import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
-import uniregistrar.driver.did.v1.dto.V1DidResolveDoc;
+import uniregistrar.driver.did.v1.dto.V1DIDDoc;
 import uniregistrar.driver.did.v1.dto.V1UpdateRequest;
 import uniregistrar.driver.did.v1.dto.parts.InvokeCapabilityItem;
-import uniregistrar.driver.did.v1.dto.parts.PatchItem;
 import uniregistrar.driver.did.v1.dto.parts.ProofItem;
-import uniregistrar.driver.did.v1.dto.parts.PublicKey;
+import uniregistrar.driver.did.v1.dto.parts.PublicKeyItem;
 import uniregistrar.driver.did.v1.util.V1;
 import uniregistrar.request.DeactivateRequest;
 import uniregistrar.request.RegisterRequest;
@@ -353,21 +352,21 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             GeneralSecurityException {
 
         final ObjectMapper mapper = new ObjectMapper();
-        final V1DidResolveDoc docToUpdate = mapper.convertValue(toUpdate, V1DidResolveDoc.class);
+        final V1DIDDoc docToUpdate = mapper.convertValue(toUpdate, V1DIDDoc.class);
 
-        List<PublicKey> publicKeys = new ArrayList<>();
-        final List<InvokeCapabilityItem> capabilityItems = docToUpdate.getRecord().getInvokeCapability();
+        List<PublicKeyItem> publicKeyItems = new ArrayList<>();
+        final List<InvokeCapabilityItem> capabilityItems = docToUpdate.getInvokeCapability();
 
         // Get all of the public keys that can invoke any change
         for (InvokeCapabilityItem item : capabilityItems) {
             if (item.getType() != null && item.getType().equalsIgnoreCase("UpdateDid")) {
-                if (item.getPublicKey() == null) {
-                    publicKeys.add(item.getPublicKey());
+                if (item.getPublicKeyItem() == null) {
+                    publicKeyItems.add(item.getPublicKeyItem());
                 }
             }
         }
 
-        if (publicKeys.size() < 1) {
+        if (publicKeyItems.size() < 1) {
             throw new RegistrationException("DID Document is not update-able!");
         }
 
@@ -387,14 +386,14 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
         boolean verified = false;
 
-        for (PublicKey publicKey : publicKeys) {
+        for (PublicKeyItem publicKeyItem : publicKeyItems) {
             if (proof.getType().equals("Ed25519VerificationKey2018")) {
-                byte[] pubKeyBytes = Base58.decode(publicKey.getPublicKeyBase58());
+                byte[] pubKeyBytes = Base58.decode(publicKeyItem.getPublicKeyBase58());
                 Ed25519Signature2018LdVerifier verifier = new Ed25519Signature2018LdVerifier(pubKeyBytes);
                 verified = verifier.verify((LinkedHashMap<String, Object>) toUpdate.getJsonLdObject(), signature);
             } else {
                 // FIXME: Rsa Signature suite is not tested.
-                RsaSignature2018LdVerifier verifier = new RsaSignature2018LdVerifier((RSAPublicKey) publicKey);
+                RsaSignature2018LdVerifier verifier = new RsaSignature2018LdVerifier((RSAPublicKey) publicKeyItem);
                 verified = verifier.verify((LinkedHashMap<String, Object>) toUpdate.getJsonLdObject(), signature);
             }
             if (verified) {
@@ -412,8 +411,10 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
         // Convert request DID to our easy to work DTO
         //TODO: For PoC purpose, I use the DIDDoc in update request as "the" update request
-        final V1UpdateRequest updateDTO = mapper.convertValue(updateRequest.getDidDocument(), V1UpdateRequest.class);
-        final ProofItem proof = validateUpdateRequest(updateDTO);
+//        final V1UpdateRequest updateDTO = mapper.convertValue(updateRequest.getDidDocument(), V1UpdateRequest.class);
+//        final ProofItem proof = validateUpdateRequest(updateDTO);
+
+        final ProofItem proof = mapper.convertValue(updateRequest.getSecret(), ProofItem.class);
 
         final String didId = updateRequest.getIdentifier();
 //        final String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
@@ -459,13 +460,17 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         }
 
         //TODO: Final step -> Navigate JsonNode's and add/remove according to the patch
-        for (PatchItem patch : updateDTO.getPatch()) {
-            switch (patch.getOp()) {
-                case "add":
-                case "remove":
-                default:
-            }
-        }
+//        for (PatchItem patch : updateDTO.getPatch()) {
+//            switch (patch.getOp()) {
+//                case "add":
+//                    if (patch.getOp().contains("authentication")) {
+//                        Map<String, Object> auth = mapper.convertValue(patch.getValue(), Map.class);
+//                        toUpdate.getAuthentications().add(Authentication.build(auth));
+//                    }
+//                case "remove":
+//                default:
+//            }
+//        }
 
         return null;
     }
