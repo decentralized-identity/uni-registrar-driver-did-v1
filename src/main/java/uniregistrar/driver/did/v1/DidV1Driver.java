@@ -20,7 +20,7 @@ import uniregistrar.RegistrationException;
 import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
 import uniregistrar.driver.did.v1.dto.V1DIDDoc;
-import uniregistrar.driver.did.v1.dto.V1UpdateRequest;
+import uniregistrar.driver.did.v1.dto.V1MetaData;
 import uniregistrar.driver.did.v1.dto.parts.*;
 import uniregistrar.driver.did.v1.util.ErrorMessages;
 import uniregistrar.driver.did.v1.util.V1;
@@ -36,29 +36,32 @@ import java.io.*;
 import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.interfaces.RSAPublicKey;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
 
     private static final Logger log = LoggerFactory.getLogger(DidV1Driver.class);
-
+    private static DateFormat df;
     private Map<String, Object> properties;
-
     private String trustAnchorSeed;
-
     private boolean overrideOnUpdate;
 
     public DidV1Driver(Map<String, Object> properties) {
-
         this.setProperties(properties);
     }
 
     public DidV1Driver() {
-
         this(getPropertiesFromEnvironment());
     }
 
     private static Map<String, Object> getPropertiesFromEnvironment() {
+
+        df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         if (log.isDebugEnabled()) log.debug("Loading from environment: " + System.getenv());
 
@@ -92,6 +95,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
     }
 
     private void configureFromProperties() {
+
+        df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         if (log.isDebugEnabled()) log.debug("Configuring from properties: " + this.getProperties());
 
@@ -363,13 +369,11 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                 final PublicKeyItem tmp = new PublicKeyItem();
                 tmp.setController(item.getController());
                 tmp.setId(item.getId());
-//                    tmp.setOwner(item.getOwner());
                 tmp.setPublicKeyBase58(item.getPublicKeyBase58());
                 tmp.setType(item.getType());
 
                 publicKeyItems.add(tmp);
             }
-//            }
         }
 
         if (publicKeyItems.size() < 1) {
@@ -410,19 +414,26 @@ public class DidV1Driver extends AbstractDriver implements Driver {
     @Override
     public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
 
+        // FIXME: Better to have a single ObjectMapper class-wide (reason: expensive to create an instance)
         final ObjectMapper mapper = new ObjectMapper();
 
-        // Convert request DID to our easy to work DTO
-        //TODO: For PoC purpose, I use the DIDDoc in update request as "the" update request
-        final V1UpdateRequest updateDTO = mapper.convertValue(updateRequest.getDidDocument(), V1UpdateRequest.class);
-
-//        final ProofItem proof = mapper.convertValue(updateRequest.getSecret(), ProofItem.class);
-
+        // Try to parse provided proof with the request
         final ProofItem proof = validateUpdateRequest(updateRequest, mapper);
 
+        // Get the didId form the request
         final String didId = updateRequest.getIdentifier();
+
+
+        // FIXME: Remove after local tests
         final String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
+        final String didFileMetaPath = "/home/cn/.dids/meta/" + didId.replace(":", "%3A") + ".meta.json";
+        final String didFileKeysPath = "/home/cn/.dids/keys/" + didId.replace(":", "%3A") + ".keys.json";
+
+        // Determine the file location
+        // FIXME: Get the base path from props or env. just like BTCR driver
 //        final String didFilePath = "/root/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
+//        final String didFileMetaPath = "/root/.dids/meta/" + didId.replace(":", "%3A") + ".meta.json";
+//        final String didFileKeysPath = "/root/.dids/keys/" + didId.replace(":", "%3A") + ".keys.json";
 
 
         DIDDocument toUpdate;
@@ -432,7 +443,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         try {
             toUpdate = mapper.readValue(didFile, DIDDocument.class);
         } catch (IOException e) {
-//            log.error("Cannot locate the did document!");
+            log.error(e.getMessage());
             throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
         }
 
@@ -441,6 +452,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         try {
             verified = checkSignatures(proof, toUpdate);
         } catch (GeneralSecurityException e) {
+            log.error(e.getMessage());
             throw new RegistrationException(ErrorMessages.SIGNATURE_ERROR.getMsg());
         }
 
@@ -455,10 +467,10 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         } catch (IOException e) {
             throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
         }
-        JsonNode rootNode = null;
 
+        // Just validate that DIDDoc is a valid json file
         try {
-            rootNode = mapper.readTree(jsonBytes);
+            mapper.readTree(jsonBytes);
         } catch (IOException e) {
             throw new RegistrationException(ErrorMessages.DIDDOC_PARSING_ERROR.getMsg());
         }
@@ -472,17 +484,12 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             switch (item.getOp()) {
                 case "add":
                     if (item.getPath().contains("authentication")) {
-//                        Authentication auth = mapper.convertValue(item.getPatchValue(), Authentication.class);
                         PatchValue pVal = item.getPatchValue();
-//                        Authentication auth = mapper.convertValue(item.getPatchValue(), Authentication.class);
-//                        Map<String, Object> auth = mapper.convertValue(item.getPatchValue(), new TypeReference<Map<String, Object>>() {});
-
                         Authentication auth = Authentication.build(pVal.getJsonLd());
                         List<Authentication> auths = toUpdate.getAuthentications();
                         auths.add(auth);
 
                         toUpdate.setJsonLdObjectKeyValue("authentication", auths);
-//                        toUpdate.getAuthentications().add(auth);
                     }
                     break;
                 case "remove":
@@ -499,19 +506,10 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             }
         }
 
-//        final ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
-//        String resultAsJson = "";
-//        try {
-//            resultAsJson = mapper.writeValueAsString(toUpdate);
-//        } catch (JsonProcessingException e) {
-//            e.printStackTrace();
-//        }
-//
-//        System.out.println(resultAsJson);
-
+        // FIXME: Include this in every DTO so mapper won't need this settings
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        //FIXME
+        //FIXME: Change local dev. file paths
         final String didDocumentLocation = "/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_results/result.json";
         try {
             mapper.writeValue(new File(didDocumentLocation), toUpdate);
@@ -520,13 +518,42 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             throw new RegistrationException(ErrorMessages.CANNOT_WRITE.getMsg());
         }
 
+        // Create the updateState
         UpdateState upState = UpdateState.build();
 
         Map<String, Object> methodMetadata = new LinkedHashMap<>();
-        methodMetadata.put("didDocumentLocation", didDocumentLocation);
+
+
+        Timestamp timestamp = Timestamp.from(Instant.now());
+
+        // Try to get creation metadata
+
+        final File didMetaFile = new File(didFileMetaPath);
+        V1MetaData metaData = null;
+
+        try {
+            metaData = mapper.readValue(didMetaFile, V1MetaData.class);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            log.debug("Cannot locate the meta file");
+        }
+
+
+        if (metaData != null) {
+            Map<String, Object> cMetaInfo = mapper.convertValue(metaData, new TypeReference<LinkedHashMap<String, Object>>() {
+            });
+            methodMetadata.putAll(cMetaInfo);
+            methodMetadata.put("updated", df.format(timestamp));
+        } else {
+            methodMetadata.put("didDocumentLocation", didDocumentLocation);
+            methodMetadata.put("updated", df.format(timestamp));
+            methodMetadata.put("ledger", "veres");
+            methodMetadata.put("ledgerMode", "test");
+        }
 
         SetRegisterStateFinished.setStateFinished(upState, toUpdate.getId(), null);
         upState.setMethodMetadata(methodMetadata);
+
 
         return upState;
     }
