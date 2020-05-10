@@ -12,7 +12,7 @@ public enum ErrorMessages {
     SIGNATURE_ERROR("Signature error!", 412),
     SIGNATURE_MISMATCH("Cannot update with the given signature!", 412),
     DIDDOC_PARSING_ERROR("Cannot read the DID Doc!", 500),
-    PROOF_PURPOSE_NOT_ACCEPTABLE("Given roof purpose is not allowed to invoke this operation.", 401),
+    PROOF_PURPOSE_NOT_ACCEPTABLE("Given proof purpose is not allowed to invoke this operation.", 401),
     CANNOT_WRITE("Internal error!", 500),
     GENERIC_BAD_REQUEST("Very bad request! Cannot complete the operations.", 400);
 

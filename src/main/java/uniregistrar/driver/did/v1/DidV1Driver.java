@@ -308,44 +308,40 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         return registerState;
     }
 
-    private ProofItem validateUpdateRequest(V1UpdateRequest request) throws RegistrationException {
+    private ProofItem validateUpdateRequest(UpdateRequest request, ObjectMapper mapper) throws RegistrationException {
 
         // Not checking with our UpdateRequest class, since it is an update request
 //        if (!request.getType().startsWith("Update")) {
 //            throw new RegistrationException("Wrong request type!");
 //        }
 
-        if (request.getProof() == null || request.getProof().size() < 1) {
+        //TODO: Only checking the first proof
+        final ProofItem proof = mapper.convertValue(request.getSecret(), ProofItem.class);
+
+        if (proof == null) {
             throw new RegistrationException(ErrorMessages.NO_PROOF_GIVEN.getMsg());
         }
 
-        //TODO: Only checking the first proof
-        ProofItem toCheck = null;
-        final List<String> supportedKeyTypes = V1.SUPPORTED_KEY_TYPES();
+        final List<String> supportedProofTypes = V1.SUPPORTED_PROOF_TYPES();
 
-        for (ProofItem p : request.getProof()) {
-            if (p.getType() != null && supportedKeyTypes.contains(p.getType())) {
-                log.debug("Supported proof method is provided. Key type is: " + p.getType());
-                toCheck = p;
-                break;
-            }
-        }
+        if (proof.getType() != null && supportedProofTypes.contains(proof.getType())) {
+            log.debug("Supported proof method is provided. Key type is: " + proof.getType());
 
-        if (toCheck == null) {
+        } else {
             throw new RegistrationException(ErrorMessages.PROOF_METHOD_NOT_SUPPORTED.getMsg());
         }
 
-        //TODO: I don't know if I should grant update right to the authentication proof type as well
-        if (toCheck.getProofPurpose() != null) {
-            if (!toCheck.getProofPurpose().equalsIgnoreCase("invokeCapability") ||
-                    !toCheck.getProofPurpose().equalsIgnoreCase("capabilityInvocation")) {
-                throw new RegistrationException(ErrorMessages.PROOF_PURPOSE_NOT_ACCEPTABLE.getMsg());
-            }
-        } else {
-            throw new RegistrationException(ErrorMessages.NO_POOF_PURPOSE_GIVEN.getMsg());
+        if (proof.getProofPurpose() == null) {
+            throw new RegistrationException(ErrorMessages.PROOF_PURPOSE_NOT_ACCEPTABLE.getMsg());
         }
 
-        return toCheck;
+        if (!proof.getProofPurpose().equalsIgnoreCase("invokeCapability") &&
+                !proof.getProofPurpose().equalsIgnoreCase("capabilityInvocation")) {
+            throw new RegistrationException(ErrorMessages.PROOF_PURPOSE_NOT_ACCEPTABLE.getMsg());
+        }
+
+
+        return proof;
 
     }
 
@@ -391,9 +387,6 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         signature.setType(proof.getType());
         //TODO: Don't know if rest of the fields are required but it verifies with the above extracted fields
 
-
-//        LdVerifier<? extends SignatureSuite> verifier = LdVerifier.ldVerifierForSignatureSuite()
-
         boolean verified = false;
 
         for (PublicKeyItem publicKeyItem : publicKeyItems) {
@@ -417,13 +410,15 @@ public class DidV1Driver extends AbstractDriver implements Driver {
     @Override
     public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
 
-        ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = new ObjectMapper();
 
         // Convert request DID to our easy to work DTO
         //TODO: For PoC purpose, I use the DIDDoc in update request as "the" update request
         final V1UpdateRequest updateDTO = mapper.convertValue(updateRequest.getDidDocument(), V1UpdateRequest.class);
 
-        final ProofItem proof = mapper.convertValue(updateRequest.getSecret(), ProofItem.class);
+//        final ProofItem proof = mapper.convertValue(updateRequest.getSecret(), ProofItem.class);
+
+        final ProofItem proof = validateUpdateRequest(updateRequest, mapper);
 
         final String didId = updateRequest.getIdentifier();
         final String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
@@ -486,7 +481,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                         List<Authentication> auths = toUpdate.getAuthentications();
                         auths.add(auth);
 
-                        toUpdate.setJsonLdObjectKeyValue("authentication",auths);
+                        toUpdate.setJsonLdObjectKeyValue("authentication", auths);
 //                        toUpdate.getAuthentications().add(auth);
                     }
                     break;

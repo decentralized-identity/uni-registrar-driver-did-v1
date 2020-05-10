@@ -34,6 +34,16 @@ public class V1 {
         Ed25519VerificationKey2018
     }
 
+    public static List<String> SUPPORTED_PROOF_TYPES() {
+        return Stream.of(SUPPORTED_PROOF_TYPES.values())
+                .map(Enum::name)
+                .collect(Collectors.toList());
+    }
+
+    private enum SUPPORTED_PROOF_TYPES {
+        Ed25519Signature2018
+    }
+
     private enum DID_TYPES {
         nym,
         uuid
