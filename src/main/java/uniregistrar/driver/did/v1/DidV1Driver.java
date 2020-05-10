@@ -25,6 +25,7 @@ import uniregistrar.driver.did.v1.dto.parts.CapabilityInvocationItem;
 import uniregistrar.driver.did.v1.dto.parts.PatchItem;
 import uniregistrar.driver.did.v1.dto.parts.ProofItem;
 import uniregistrar.driver.did.v1.dto.parts.PublicKeyItem;
+import uniregistrar.driver.did.v1.util.ErrorMessages;
 import uniregistrar.driver.did.v1.util.V1;
 import uniregistrar.request.DeactivateRequest;
 import uniregistrar.request.RegisterRequest;
@@ -316,13 +317,13 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 //        }
 
         if (request.getProof() == null || request.getProof().size() < 1) {
-            throw new RegistrationException("Request does not contain any proof key");
+            throw new RegistrationException(ErrorMessages.NO_PROOF_GIVEN.getMsg());
         }
 
+        //TODO: Only checking the first proof
         ProofItem toCheck = null;
         final List<String> supportedKeyTypes = V1.SUPPORTED_KEY_TYPES();
 
-        //TODO: Controlling only one proof method. No idea if multiple ones required.
         for (ProofItem p : request.getProof()) {
             if (p.getType() != null && supportedKeyTypes.contains(p.getType())) {
                 log.debug("Supported proof method is provided. Key type is: " + p.getType());
@@ -332,17 +333,17 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         }
 
         if (toCheck == null) {
-            throw new RegistrationException("No supported proof type is provided!");
+            throw new RegistrationException(ErrorMessages.PROOF_METHOD_NOT_SUPPORTED.getMsg());
         }
 
         //TODO: I don't know if I should grant update right to the authentication proof type as well
         if (toCheck.getProofPurpose() != null) {
             if (!toCheck.getProofPurpose().equalsIgnoreCase("invokeCapability") ||
                     !toCheck.getProofPurpose().equalsIgnoreCase("capabilityInvocation")) {
-                throw new RegistrationException("Wrong proof purpose is given.");
+                throw new RegistrationException(ErrorMessages.PROOF_PURPOSE_NOT_ACCEPTABLE.getMsg());
             }
         } else {
-            throw new RegistrationException("No proof purpose given");
+            throw new RegistrationException(ErrorMessages.NO_POOF_PURPOSE_GIVEN.getMsg());
         }
 
         return toCheck;
@@ -361,24 +362,23 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         // Get all of the public keys that can invoke any change
         for (CapabilityInvocationItem item : capabilityItems) {
 //            if (item.getType() != null && item.getType().equalsIgnoreCase("UpdateDid")) {
-                if (item.getPublicKeyItem() != null) {
-                    publicKeyItems.add(item.getPublicKeyItem());
-                } else
-                {
-                    final PublicKeyItem tmp = new PublicKeyItem();
-                    tmp.setController(item.getController());
-                    tmp.setId(item.getId());
+            if (item.getPublicKeyItem() != null) {
+                publicKeyItems.add(item.getPublicKeyItem());
+            } else {
+                final PublicKeyItem tmp = new PublicKeyItem();
+                tmp.setController(item.getController());
+                tmp.setId(item.getId());
 //                    tmp.setOwner(item.getOwner());
-                    tmp.setPublicKeyBase58(item.getPublicKeyBase58());
-                    tmp.setType(item.getType());
+                tmp.setPublicKeyBase58(item.getPublicKeyBase58());
+                tmp.setType(item.getType());
 
-                    publicKeyItems.add(tmp);
-                }
+                publicKeyItems.add(tmp);
+            }
 //            }
         }
 
         if (publicKeyItems.size() < 1) {
-            throw new RegistrationException("DID Document is not update-able!");
+            throw new RegistrationException(ErrorMessages.FORBIDDEN_UPDATE.getMsg());
         }
 
         LdSignature signature = new LdSignature();
@@ -386,7 +386,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         if (proof.getJws() != null && !proof.getJws().isEmpty()) {
             signature.setJws(proof.getJws());
         } else {
-            throw new RegistrationException("JWS is null");
+            throw new RegistrationException(ErrorMessages.NO_JWS_GIVEN.getMsg());
         }
 
         signature.setType(proof.getType());
@@ -440,7 +440,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             toUpdate = mapper.readValue(didFile, DIDDocument.class);
         } catch (IOException e) {
 //            log.error("Cannot locate the did document!");
-            throw new RegistrationException("Cannot locate the did document!");
+            throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
         }
 
 
@@ -448,11 +448,11 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         try {
             verified = checkSignatures(proof, toUpdate);
         } catch (GeneralSecurityException e) {
-            throw new RegistrationException("Signature error!");
+            throw new RegistrationException(ErrorMessages.SIGNATURE_ERROR.getMsg());
         }
 
         if (!verified) {
-            throw new RegistrationException("Cannot update with the given signature!");
+            throw new RegistrationException(ErrorMessages.SIGNATURE_MISMATCH.getMsg());
         }
 
         // FIXME: Easier to navigate for now, using the file format
@@ -460,17 +460,19 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         try {
             jsonBytes = Files.readAllBytes(didFile.toPath());
         } catch (IOException e) {
-            throw new RegistrationException("Cannot locate the DID Doc!");
+            throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
         }
         JsonNode rootNode = null;
 
         try {
             rootNode = mapper.readTree(jsonBytes);
         } catch (IOException e) {
-            throw new RegistrationException("Cannot read the DID Doc!");
+            throw new RegistrationException(ErrorMessages.DIDDOC_PARSING_ERROR.getMsg());
         }
 
-        List<PatchItem> patchItems = mapper.convertValue(updateRequest.getOptions().get("patch"),new TypeReference<List<PatchItem>>(){});
+        List<PatchItem> patchItems = mapper.convertValue(updateRequest.getOptions()
+                .get("patch"), new TypeReference<List<PatchItem>>() {
+        });
 
 //        TODO: Final step -> Navigate JsonNode's and add/remove according to the patch
         for (PatchItem item : patchItems) {
@@ -487,10 +489,14 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                     }
                     break;
                 case "remove":
-//                    if(item.getPath().contains("services")){
-//                        int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) -1;
-//                        toUpdate.getServices().remove(index);
-//                    }
+                    if (item.getPath().contains("services")) {
+                        int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) - 1;
+                        if (toUpdate.getServices().size() > index) {
+                            toUpdate.getServices().remove(index);
+                        } else {
+                            throw new RegistrationException(ErrorMessages.GENERIC_BAD_REQUEST.getMsg());
+                        }
+                    }
                     break;
                 default:
             }
@@ -507,15 +513,25 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 //        System.out.println(resultAsJson);
 
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        //FIXME
+        final String didDocumentLocation = "/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/result.json";
         try {
-            mapper.writeValue(new File("/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/result.json"), toUpdate);
+            mapper.writeValue(new File(didDocumentLocation), toUpdate);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
+            throw new RegistrationException(ErrorMessages.CANNOT_WRITE.getMsg());
         }
 
         UpdateState upState = UpdateState.build();
 
-        return null;
+        Map<String, Object> methodMetadata = new LinkedHashMap<>();
+        methodMetadata.put("didDocumentLocation", didDocumentLocation);
+
+        SetRegisterStateFinished.setStateFinished(upState, toUpdate.getId(), null);
+        upState.setMethodMetadata(methodMetadata);
+
+        return upState;
     }
 
 
