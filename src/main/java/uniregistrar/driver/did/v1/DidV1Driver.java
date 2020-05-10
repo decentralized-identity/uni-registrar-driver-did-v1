@@ -1,6 +1,7 @@
 package uniregistrar.driver.did.v1;
 
 import com.danubetech.keyformats.PrivateKey_to_JWK;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -354,7 +355,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         final ObjectMapper mapper = new ObjectMapper();
         final V1DIDDoc docToUpdate = mapper.convertValue(toUpdate, V1DIDDoc.class);
 
-        List<PublicKeyItem> publicKeyItems = new ArrayList<>();
+        List<PublicKeyItem> publicKeyItems = new LinkedList<>();
         final List<CapabilityInvocationItem> capabilityItems = docToUpdate.getCapabilityInvocation();
 
         // Get all of the public keys that can invoke any change
@@ -367,7 +368,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                     final PublicKeyItem tmp = new PublicKeyItem();
                     tmp.setController(item.getController());
                     tmp.setId(item.getId());
-                    tmp.setOwner(item.getOwner());
+//                    tmp.setOwner(item.getOwner());
                     tmp.setPublicKeyBase58(item.getPublicKeyBase58());
                     tmp.setType(item.getType());
 
@@ -481,7 +482,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 //                        toUpdate.getAuthentications().add(Authentication.build(auth));
 
-                        List<Authentication> auths = new ArrayList<>(toUpdate.getAuthentications());
+                        List<Authentication> auths = new LinkedList<>(toUpdate.getAuthentications());
                         auths.add(auth);
                     }
                     break;
@@ -504,6 +505,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 //        }
 //
 //        System.out.println(resultAsJson);
+
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         try {
             mapper.writeValue(new File("/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/result.json"), toUpdate);
         } catch (IOException e) {

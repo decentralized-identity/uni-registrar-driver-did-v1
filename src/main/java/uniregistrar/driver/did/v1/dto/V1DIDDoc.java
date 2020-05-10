@@ -2,11 +2,13 @@ package uniregistrar.driver.did.v1.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import uniregistrar.driver.did.v1.dto.parts.*;
 
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder({"@context", "id", "authentication", "assertionMethod", "grantCapability", "invokeCapability"})
 public class V1DIDDoc {
 
     @JsonProperty("assertionMethod")
@@ -25,6 +27,17 @@ public class V1DIDDoc {
     private List<GrantCapabilityItem> grantCapability;
     @JsonProperty("invokeCapability")
     private List<InvokeCapabilityItem> invokeCapability;
+
+    @JsonProperty("service")
+    private List<ServiceItem> service;
+
+    public List<ServiceItem> getService() {
+        return service;
+    }
+
+    public void setService(List<ServiceItem> service) {
+        this.service = service;
+    }
 
     public List<GrantCapabilityItem> getGrantCapability() {
         return grantCapability;

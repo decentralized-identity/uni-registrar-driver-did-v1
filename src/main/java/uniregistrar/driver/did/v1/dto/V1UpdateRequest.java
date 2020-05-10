@@ -2,12 +2,14 @@ package uniregistrar.driver.did.v1.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import uniregistrar.driver.did.v1.dto.parts.PatchItem;
 import uniregistrar.driver.did.v1.dto.parts.ProofItem;
 
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder({"@context", "type", "patch", "proof"})
 public class V1UpdateRequest {
 
     @JsonProperty("patch")
@@ -52,16 +54,5 @@ public class V1UpdateRequest {
 
     public void setContext(String context) {
         this.context = context;
-    }
-
-    @Override
-    public String toString() {
-        return
-                "UpdatePost{" +
-                        "patch = '" + patch + '\'' +
-                        ",proof = '" + proof + '\'' +
-                        ",type = '" + type + '\'' +
-                        ",@context = '" + context + '\'' +
-                        "}";
     }
 }

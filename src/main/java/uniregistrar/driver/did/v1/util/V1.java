@@ -9,6 +9,8 @@ public class V1 {
     public static final String DEFAULT_MODE = "dev";
     public static final String DEFAULT_DID_TYPE = "nym";
 
+    public static final boolean OVERWRITE_ON_UPDATE = true;
+
     public static List<String> PROOF_PURPOSES() {
         return Stream.of(PROOF_PURPOSES.values())
                 .map(Enum::name)

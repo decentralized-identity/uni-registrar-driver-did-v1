@@ -1,19 +1,30 @@
 package uniregistrar.driver.did.v1;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import did.Authentication;
+import did.DIDDocument;
+import did.PublicKey;
 import uniregistrar.RegistrationException;
+import uniregistrar.driver.did.v1.dto.V1DIDDoc;
 import uniregistrar.driver.did.v1.dto.parts.PatchItem;
 import uniregistrar.driver.did.v1.dto.parts.PatchValue;
+import uniregistrar.driver.did.v1.dto.parts.PublicKeyItem;
 import uniregistrar.request.UpdateRequest;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class UpdateTest1 {
-    public static void main(String[] args) throws RegistrationException {
+    public static void main(String[] args) throws RegistrationException, IOException {
 
         // Set secret
-        Map<String, Object> mySecret = new HashMap<>();
+        Map<String, Object> mySecret = new LinkedHashMap<>();
 
         mySecret.put("type", "Ed25519Signature2018");
         mySecret.put("created", "2018-02-24T22:23:42Z");
@@ -71,9 +82,30 @@ public class UpdateTest1 {
         Map<String,Object> props = new HashMap<>();
         props.put("trustAnchorSeed", "none");
 
-        DidV1Driver driver = new DidV1Driver(props);
-        driver.update(request);
+//        DidV1Driver driver = new DidV1Driver(props);
+//        driver.update(request);
 
+        request.setOptions(props);
+        ObjectMapper mapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        V1DIDDoc toUpdate = mapper.readValue(new File("/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/did.json")
+                , V1DIDDoc.class);
+
+        DIDDocument toUpdate2 = mapper.readValue(new File("/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/did.json")
+                , DIDDocument.class);
+
+        PublicKeyItem publicKeyItem = mapper.convertValue(patchValue1, PublicKeyItem.class);
+//        AuthenticationItem auth = mapper.convertValue(patchValue1, AuthenticationItem.class);
+        PublicKey publicKey = PublicKey.build(publicKeyItem.getId(), new String[]{publicKeyItem.getType()},null,publicKeyItem.getPublicKeyBase58(),null,null);
+        Authentication auth = mapper.convertValue(patchValue1, Authentication.class);
+        auth.setJsonLdObjectKeyValue("publicKey",publicKey);
+
+        toUpdate2.getAuthentications().add(auth);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.writeValue(new File("/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/result3.json"), toUpdate2);
+
+        System.out.println();
 
     }
 }

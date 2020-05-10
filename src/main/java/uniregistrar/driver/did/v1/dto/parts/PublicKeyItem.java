@@ -2,14 +2,18 @@ package uniregistrar.driver.did.v1.dto.parts;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder({"id", "type", "controller", "publicKeyBase58"})
 public class PublicKeyItem {
 
     @JsonProperty("controller")
     private String controller;
-    @JsonProperty("owner")
-    private String owner;
+
+//    @JsonProperty("owner")
+//    private String owner;
+
     @JsonProperty("publicKeyBase58")
     private String publicKeyBase58;
     @JsonProperty("id")
@@ -17,13 +21,6 @@ public class PublicKeyItem {
     @JsonProperty("type")
     private String type;
 
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
 
     public String getController() {
         return controller;

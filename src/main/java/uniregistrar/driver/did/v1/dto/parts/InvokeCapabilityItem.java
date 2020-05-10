@@ -2,8 +2,10 @@ package uniregistrar.driver.did.v1.dto.parts;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder({"id", "type", "controller"})
 public class InvokeCapabilityItem {
 
     @JsonProperty("publicKey")
@@ -20,16 +22,9 @@ public class InvokeCapabilityItem {
 
     @JsonProperty("id")
     private String id;
-    @JsonProperty("owner")
-    private String owner;
 
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
+//    @JsonProperty("owner")
+//    private String owner;
 
     public String getPublicKeyBase58() {
         return publicKeyBase58;
@@ -56,7 +51,25 @@ public class InvokeCapabilityItem {
     }
 
     public PublicKeyItem getPublicKeyItem() {
-        return publicKeyItem;
+        if(this.publicKeyItem == null && this.publicKeyBase58 != null){
+            PublicKeyItem pItem = new PublicKeyItem();
+            pItem.setType(this.type);
+            pItem.setPublicKeyBase58(this.publicKeyBase58);
+            if(this.controller != null) {
+                pItem.setController(this.controller);
+//                this.owner = controller;
+//                pItem.setOwner(controller);
+            }
+//            else{
+//                pItem.setOwner(this.owner);
+//                pItem.setController(this.owner);
+//                this.controller = owner;
+//            }
+
+            pItem.setId(this.id);
+        }
+
+        return this.publicKeyItem;
     }
 
     public void setPublicKeyItem(PublicKeyItem publicKeyItem) {

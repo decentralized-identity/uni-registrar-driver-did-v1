@@ -2,8 +2,10 @@ package uniregistrar.driver.did.v1.dto.parts;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder({"type","created","creator","capability","capabilityAction","jws","proofPurpose"})
 public class ProofItem {
 
     @JsonProperty("equihashParameterK")
