@@ -21,10 +21,7 @@ import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
 import uniregistrar.driver.did.v1.dto.V1DIDDoc;
 import uniregistrar.driver.did.v1.dto.V1UpdateRequest;
-import uniregistrar.driver.did.v1.dto.parts.CapabilityInvocationItem;
-import uniregistrar.driver.did.v1.dto.parts.PatchItem;
-import uniregistrar.driver.did.v1.dto.parts.ProofItem;
-import uniregistrar.driver.did.v1.dto.parts.PublicKeyItem;
+import uniregistrar.driver.did.v1.dto.parts.*;
 import uniregistrar.driver.did.v1.util.ErrorMessages;
 import uniregistrar.driver.did.v1.util.V1;
 import uniregistrar.request.DeactivateRequest;
@@ -48,6 +45,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
     private Map<String, Object> properties;
 
     private String trustAnchorSeed;
+
+    private boolean overrideOnUpdate;
 
     public DidV1Driver(Map<String, Object> properties) {
 
@@ -422,8 +421,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
         // Convert request DID to our easy to work DTO
         //TODO: For PoC purpose, I use the DIDDoc in update request as "the" update request
-//        final V1UpdateRequest updateDTO = mapper.convertValue(updateRequest.getDidDocument(), V1UpdateRequest.class);
-//        final ProofItem proof = validateUpdateRequest(updateDTO);
+        final V1UpdateRequest updateDTO = mapper.convertValue(updateRequest.getDidDocument(), V1UpdateRequest.class);
 
         final ProofItem proof = mapper.convertValue(updateRequest.getSecret(), ProofItem.class);
 
@@ -479,13 +477,17 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             switch (item.getOp()) {
                 case "add":
                     if (item.getPath().contains("authentication")) {
-                        Authentication auth = mapper.convertValue(item.getPatchValue(), Authentication.class);
+//                        Authentication auth = mapper.convertValue(item.getPatchValue(), Authentication.class);
+                        PatchValue pVal = item.getPatchValue();
+//                        Authentication auth = mapper.convertValue(item.getPatchValue(), Authentication.class);
 //                        Map<String, Object> auth = mapper.convertValue(item.getPatchValue(), new TypeReference<Map<String, Object>>() {});
 
-//                        toUpdate.getAuthentications().add(Authentication.build(auth));
-
-                        List<Authentication> auths = new LinkedList<>(toUpdate.getAuthentications());
+                        Authentication auth = Authentication.build(pVal.getJsonLd());
+                        List<Authentication> auths = toUpdate.getAuthentications();
                         auths.add(auth);
+
+                        toUpdate.setJsonLdObjectKeyValue("authentication",auths);
+//                        toUpdate.getAuthentications().add(auth);
                     }
                     break;
                 case "remove":
@@ -515,7 +517,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         //FIXME
-        final String didDocumentLocation = "/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_dids/result.json";
+        final String didDocumentLocation = "/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_results/result.json";
         try {
             mapper.writeValue(new File(didDocumentLocation), toUpdate);
         } catch (IOException e) {
@@ -534,14 +536,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         return upState;
     }
 
-
-    /*
-     * Helper methods
-     */
-
     @Override
     public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
-        //TODO: This method is not supported -> Prepare a suitable response
         throw new RegistrationException("This method does not support deactivation.");
     }
 

@@ -1,6 +1,7 @@
 package uniregistrar.driver.did.v1.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import uniregistrar.driver.did.v1.dto.parts.PatchItem;
@@ -9,6 +10,7 @@ import uniregistrar.driver.did.v1.dto.parts.ProofItem;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"@context", "type", "patch", "proof"})
 public class V1UpdateRequest {
 

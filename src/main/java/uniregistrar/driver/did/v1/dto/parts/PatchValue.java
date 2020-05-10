@@ -1,11 +1,16 @@
 package uniregistrar.driver.did.v1.dto.parts;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"type","publicKey"})
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({"id","type","controller","publicKeyBase58"})
 public class PatchValue {
 
     @JsonProperty("publicKey")
@@ -85,8 +90,13 @@ public class PatchValue {
         this.type = type;
     }
 
-//    public Map<String,Object> getJsonLd(){
-//        Map<String,Object> map = new HashMap<>();
-//        map.put()
-//    }
+    public Map<String,Object> getJsonLd(){
+        final Map<String,Object> map = new LinkedHashMap<>();
+        map.put("id",id);
+        map.put("type",type);
+        map.put("controller", controller);
+        map.put("publicKeyBase58",publicKeyBase58);
+
+        return map;
+    }
 }
