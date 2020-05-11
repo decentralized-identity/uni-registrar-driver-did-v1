@@ -1,7 +1,6 @@
 package uniregistrar.driver.did.v1;
 
 import com.danubetech.keyformats.PrivateKey_to_JWK;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,21 +40,25 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
 
     private static final Logger log = LoggerFactory.getLogger(DidV1Driver.class);
+    private static final Pattern FILE_NAME_PATTERN = Pattern.compile(":", Pattern.LITERAL);
     private static DateFormat df;
     private Map<String, Object> properties;
     private String trustAnchorSeed;
     private boolean overrideOnUpdate;
-
-    public DidV1Driver(Map<String, Object> properties) {
-        this.setProperties(properties);
-    }
+    private String basePath;
 
     public DidV1Driver() {
         this(getPropertiesFromEnvironment());
+    }
+
+    public DidV1Driver(Map<String, Object> properties) {
+        this.setProperties(properties);
     }
 
     private static Map<String, Object> getPropertiesFromEnvironment() {
@@ -80,20 +83,6 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         return properties;
     }
 
-    private static JWK privateKeyToJWK(ObjectNode jsonKey) {
-
-        byte[] publicKeyBytes = Base58.decode(jsonKey.get("publicKeyBase58").asText());
-        byte[] privateKeyBytes = Base58.decode(jsonKey.get("privateKeyBase58").asText());
-
-
-        return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, null, null);
-    }
-
-    private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
-
-        return jsonKey.get("id").asText();
-    }
-
     private void configureFromProperties() {
 
         df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -104,12 +93,46 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         try {
 
             String prop_trustAnchorSeed = (String) this.getProperties().get("trustAnchorSeed");
+            String prop_basePath = (String) this.getProperties().get("basePath");
+            String prop_overrideOnUpdate = (String) this.getProperties().get("overrideOnUpdate");
 
             if (prop_trustAnchorSeed != null) this.setTrustAnchorSeed(prop_trustAnchorSeed);
+            if (prop_basePath != null) this.setBasePath(prop_basePath);
+            if (prop_overrideOnUpdate != null) {
+                this.setOverrideOnUpdate(prop_overrideOnUpdate.equalsIgnoreCase("true"));
+            }
+
         } catch (Exception ex) {
 
             throw new IllegalArgumentException(ex.getMessage(), ex);
         }
+    }
+
+    public Map<String, Object> getProperties() {
+
+        return this.properties;
+    }
+
+    public void setProperties(Map<String, Object> properties) {
+
+        this.properties = properties;
+        this.configureFromProperties();
+    }
+
+    public boolean isOverrideOnUpdate() {
+        return overrideOnUpdate;
+    }
+
+    public void setOverrideOnUpdate(boolean overrideOnUpdate) {
+        this.overrideOnUpdate = overrideOnUpdate;
+    }
+
+    public String getBasePath() {
+        return basePath;
+    }
+
+    public void setBasePath(String basePath) {
+        this.basePath = basePath;
     }
 
     @Override
@@ -314,7 +337,169 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         return registerState;
     }
 
-    private ProofItem validateUpdateRequest(UpdateRequest request, ObjectMapper mapper) throws RegistrationException {
+    private static JWK privateKeyToJWK(ObjectNode jsonKey) {
+
+        byte[] publicKeyBytes = Base58.decode(jsonKey.get("publicKeyBase58").asText());
+        byte[] privateKeyBytes = Base58.decode(jsonKey.get("privateKeyBase58").asText());
+
+
+        return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, null, null);
+    }
+
+    private static String identifierToPublicKeyDIDURL(ObjectNode jsonKey) {
+
+        return jsonKey.get("id").asText();
+    }
+
+    @Override
+    public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
+
+        final ObjectMapper mapper = new ObjectMapper();
+
+        // Try to parse provided proof with the request
+        final ProofItem proof = validateUpdateRequest(updateRequest, mapper);
+
+        // Get the didId form the request
+        final String didId = updateRequest.getIdentifier();
+
+
+        final String didFilePath = basePath + "/veres-test/registered/" + FILE_NAME_PATTERN.matcher(didId).replaceAll(Matcher.quoteReplacement("%3A")) + ".json";
+        final String didFileMetaPath = basePath + "/meta/" + FILE_NAME_PATTERN.matcher(didId).replaceAll(Matcher.quoteReplacement("%3A")) + ".meta.json";
+        final String didFileKeysPath = basePath + "/keys/" + FILE_NAME_PATTERN.matcher(didId).replaceAll(Matcher.quoteReplacement("%3A")) + ".keys.json";
+
+        DIDDocument toUpdate;
+
+        File didFile = new File(didFilePath);
+
+        try {
+            toUpdate = mapper.readValue(didFile, DIDDocument.class);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
+        }
+
+
+        boolean verified;
+        try {
+            verified = checkSignatures(proof, toUpdate);
+        } catch (GeneralSecurityException e) {
+            log.error(e.getMessage());
+            throw new RegistrationException(ErrorMessages.SIGNATURE_ERROR.getMsg());
+        }
+
+        if (!verified) {
+            throw new RegistrationException(ErrorMessages.SIGNATURE_MISMATCH.getMsg());
+        }
+
+        byte[] jsonBytes;
+        try {
+            jsonBytes = Files.readAllBytes(didFile.toPath());
+        } catch (IOException e) {
+            throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
+        }
+
+        // Just validate that DIDDoc is a valid json file
+        try {
+            mapper.readTree(jsonBytes);
+        } catch (IOException e) {
+            throw new RegistrationException(ErrorMessages.DIDDOC_PARSING_ERROR.getMsg());
+        }
+
+        List<PatchItem> patchItems = mapper.convertValue(updateRequest.getOptions()
+                                                                 .get("patch"), new TypeReference<List<PatchItem>>() {
+        });
+
+        for (PatchItem item : patchItems) {
+            switch (item.getOp()) {
+                case "add":
+                    if (item.getPath().contains("authentication")) {
+                        PatchValue pVal = item.getPatchValue();
+                        Authentication auth = Authentication.build(pVal.getJsonLd());
+                        List<Authentication> auths = toUpdate.getAuthentications();
+                        auths.add(auth);
+
+                        toUpdate.setJsonLdObjectKeyValue("authentication", auths);
+                    }
+                    break;
+                case "remove":
+                    if (item.getPath().contains("services")) {
+                        int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) - 1;
+                        if (toUpdate.getServices().size() > index) {
+                            toUpdate.getServices().remove(index);
+                        } else {
+                            throw new RegistrationException(ErrorMessages.GENERIC_BAD_REQUEST.getMsg());
+                        }
+                    }
+                    break;
+                default:
+            }
+        }
+
+        String didDocumentLocation = null;
+
+        if (overrideOnUpdate) {
+            didDocumentLocation = didFilePath;
+        } else {
+            didDocumentLocation = didFilePath;
+            // This is a dangerous op, a spam protection is needed for requests
+            for (int i = 1; i < Integer.MAX_VALUE; i++) {
+                File tmp = new File(didDocumentLocation.replace(".json", "_ver_" + i + ".json"));
+                if (!tmp.exists()) {
+                    didDocumentLocation = tmp.getAbsolutePath();
+                    break;
+                }
+            }
+        }
+
+        try {
+            mapper.writeValue(new File(didDocumentLocation), toUpdate);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new RegistrationException(ErrorMessages.CANNOT_WRITE.getMsg());
+        }
+
+        // Create the updateState
+        UpdateState upState = UpdateState.build();
+
+        Map<String, Object> methodMetadata = new LinkedHashMap<>();
+
+
+        Timestamp timestamp = Timestamp.from(Instant.now());
+
+        // Try to get creation metadata
+
+        final File didMetaFile = new File(didFileMetaPath);
+        V1MetaData metaData = null;
+
+        try {
+            metaData = mapper.readValue(didMetaFile, V1MetaData.class);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            log.debug("Cannot locate the meta file");
+        }
+
+
+        if (metaData != null) {
+            Map<String, Object> cMetaInfo = mapper.convertValue(metaData, new TypeReference<LinkedHashMap<String, Object>>() {
+            });
+            methodMetadata.putAll(cMetaInfo);
+            methodMetadata.put("didDocumentLocation", didDocumentLocation);
+            methodMetadata.put("updated", df.format(timestamp));
+        } else {
+            methodMetadata.put("didDocumentLocation", didDocumentLocation);
+            methodMetadata.put("updated", df.format(timestamp));
+            methodMetadata.put("ledger", "veres");
+            methodMetadata.put("ledgerMode", "test");
+        }
+
+        SetRegisterStateFinished.setStateFinished(upState, toUpdate.getId(), null);
+        upState.setMethodMetadata(methodMetadata);
+
+
+        return upState;
+    }
+
+    private static ProofItem validateUpdateRequest(UpdateRequest request, ObjectMapper mapper) throws RegistrationException {
 
         // Not checking with our UpdateRequest class, since it is an update request
 //        if (!request.getType().startsWith("Update")) {
@@ -351,7 +536,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
     }
 
-    private boolean checkSignatures(ProofItem proof, DIDDocument toUpdate) throws RegistrationException,
+    private static boolean checkSignatures(ProofItem proof, DIDDocument toUpdate) throws RegistrationException,
             GeneralSecurityException {
 
         final ObjectMapper mapper = new ObjectMapper();
@@ -411,152 +596,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         return verified;
     }
 
-    @Override
-    public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
-
-        // FIXME: Better to have a single ObjectMapper class-wide (reason: expensive to create an instance)
-        final ObjectMapper mapper = new ObjectMapper();
-
-        // Try to parse provided proof with the request
-        final ProofItem proof = validateUpdateRequest(updateRequest, mapper);
-
-        // Get the didId form the request
-        final String didId = updateRequest.getIdentifier();
-
-
-        // FIXME: Remove after local tests
-        final String didFilePath = "/home/cn/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
-        final String didFileMetaPath = "/home/cn/.dids/meta/" + didId.replace(":", "%3A") + ".meta.json";
-        final String didFileKeysPath = "/home/cn/.dids/keys/" + didId.replace(":", "%3A") + ".keys.json";
-
-        // Determine the file location
-        // FIXME: Get the base path from props or env. just like BTCR driver
-//        final String didFilePath = "/root/.dids/veres-test/registered/" + didId.replace(":", "%3A") + ".json";
-//        final String didFileMetaPath = "/root/.dids/meta/" + didId.replace(":", "%3A") + ".meta.json";
-//        final String didFileKeysPath = "/root/.dids/keys/" + didId.replace(":", "%3A") + ".keys.json";
-
-
-        DIDDocument toUpdate;
-
-        File didFile = new File(didFilePath);
-
-        try {
-            toUpdate = mapper.readValue(didFile, DIDDocument.class);
-        } catch (IOException e) {
-            log.error(e.getMessage());
-            throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
-        }
-
-
-        boolean verified;
-        try {
-            verified = checkSignatures(proof, toUpdate);
-        } catch (GeneralSecurityException e) {
-            log.error(e.getMessage());
-            throw new RegistrationException(ErrorMessages.SIGNATURE_ERROR.getMsg());
-        }
-
-        if (!verified) {
-            throw new RegistrationException(ErrorMessages.SIGNATURE_MISMATCH.getMsg());
-        }
-
-        // FIXME: Easier to navigate for now, using the file format
-        byte[] jsonBytes;
-        try {
-            jsonBytes = Files.readAllBytes(didFile.toPath());
-        } catch (IOException e) {
-            throw new RegistrationException(ErrorMessages.DIDDOC_NOT_FOUNT.getMsg());
-        }
-
-        // Just validate that DIDDoc is a valid json file
-        try {
-            mapper.readTree(jsonBytes);
-        } catch (IOException e) {
-            throw new RegistrationException(ErrorMessages.DIDDOC_PARSING_ERROR.getMsg());
-        }
-
-        List<PatchItem> patchItems = mapper.convertValue(updateRequest.getOptions()
-                .get("patch"), new TypeReference<List<PatchItem>>() {
-        });
-
-//        TODO: Final step -> Navigate JsonNode's and add/remove according to the patch
-        for (PatchItem item : patchItems) {
-            switch (item.getOp()) {
-                case "add":
-                    if (item.getPath().contains("authentication")) {
-                        PatchValue pVal = item.getPatchValue();
-                        Authentication auth = Authentication.build(pVal.getJsonLd());
-                        List<Authentication> auths = toUpdate.getAuthentications();
-                        auths.add(auth);
-
-                        toUpdate.setJsonLdObjectKeyValue("authentication", auths);
-                    }
-                    break;
-                case "remove":
-                    if (item.getPath().contains("services")) {
-                        int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) - 1;
-                        if (toUpdate.getServices().size() > index) {
-                            toUpdate.getServices().remove(index);
-                        } else {
-                            throw new RegistrationException(ErrorMessages.GENERIC_BAD_REQUEST.getMsg());
-                        }
-                    }
-                    break;
-                default:
-            }
-        }
-
-        // FIXME: Include this in every DTO so mapper won't need this settings
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        //FIXME: Change local dev. file paths
-        final String didDocumentLocation = "/home/cn/sovrin_driver/uni-registrar-driver-did-v1/src/test/resources/test_results/result.json";
-        try {
-            mapper.writeValue(new File(didDocumentLocation), toUpdate);
-        } catch (IOException e) {
-            log.error(e.getMessage());
-            throw new RegistrationException(ErrorMessages.CANNOT_WRITE.getMsg());
-        }
-
-        // Create the updateState
-        UpdateState upState = UpdateState.build();
-
-        Map<String, Object> methodMetadata = new LinkedHashMap<>();
-
-
-        Timestamp timestamp = Timestamp.from(Instant.now());
-
-        // Try to get creation metadata
-
-        final File didMetaFile = new File(didFileMetaPath);
-        V1MetaData metaData = null;
-
-        try {
-            metaData = mapper.readValue(didMetaFile, V1MetaData.class);
-        } catch (IOException e) {
-            log.error(e.getMessage());
-            log.debug("Cannot locate the meta file");
-        }
-
-
-        if (metaData != null) {
-            Map<String, Object> cMetaInfo = mapper.convertValue(metaData, new TypeReference<LinkedHashMap<String, Object>>() {
-            });
-            methodMetadata.putAll(cMetaInfo);
-            methodMetadata.put("updated", df.format(timestamp));
-        } else {
-            methodMetadata.put("didDocumentLocation", didDocumentLocation);
-            methodMetadata.put("updated", df.format(timestamp));
-            methodMetadata.put("ledger", "veres");
-            methodMetadata.put("ledgerMode", "test");
-        }
-
-        SetRegisterStateFinished.setStateFinished(upState, toUpdate.getId(), null);
-        upState.setMethodMetadata(methodMetadata);
-
-
-        return upState;
-    }
+    /*
+     * Getters and setters
+     */
 
     @Override
     public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
@@ -567,21 +609,6 @@ public class DidV1Driver extends AbstractDriver implements Driver {
     public Map<String, Object> properties() {
 
         return this.getProperties();
-    }
-
-    /*
-     * Getters and setters
-     */
-
-    public Map<String, Object> getProperties() {
-
-        return this.properties;
-    }
-
-    public void setProperties(Map<String, Object> properties) {
-
-        this.properties = properties;
-        this.configureFromProperties();
     }
 
     public String getTrustAnchorSeed() {
