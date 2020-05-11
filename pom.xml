@@ -53,9 +53,9 @@
                         <version>9.4.28.v20200408</version>
                         <configuration>
                             <jettyConfig>
-                                ${basedir}/src/test/resources/jetty.xml
+                                ${project.basedir}/src/test/resources/jetty.xml
                                 <jettyEnvXml>
-                                    ${basedir}/src/test/resources/jetty-env.xml
+                                    ${project.basedir}/src/test/resources/jetty-env.xml
                                 </jettyEnvXml>
                                 <contextPath>/</contextPath>
                             </jettyConfig>
@@ -71,7 +71,7 @@
                                 </systemProperty>
                                 <systemProperty>
                                     <name>log4j.configuration</name>
-                                    <patchValue>file:${basedir}/src/test/resources/log4j.properties</patchValue>
+                                    <patchValue>file:${project.basedir}/src/test/resources/log4j.properties</patchValue>
                                 </systemProperty>
                             </systemProperties>
                             <webApp>

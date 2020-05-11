@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.nimbusds.jose.jwk.JWK;
 import did.Authentication;
 import did.DIDDocument;
+import did.Service;
 import info.weboftrust.ldsignatures.LdSignature;
 import info.weboftrust.ldsignatures.verifier.Ed25519Signature2018LdVerifier;
 import info.weboftrust.ldsignatures.verifier.RsaSignature2018LdVerifier;
@@ -70,8 +71,15 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         try {
 
             String env_trustAnchorSeed = System.getenv("uniregistrar_driver_did_v1_trustAnchorSeed");
+            String env_base_path = System.getenv("uniregistrar_driver_did_v1_base_path");
+            String env_override_on_update = System.getenv("uniregistrar_driver_did_v1_override_on_update");
+            String env_update_prefix = System.getenv("uniregistrar_driver_did_v1_update_prefix");
 
             if (env_trustAnchorSeed != null) properties.put("trustAnchorSeed", env_trustAnchorSeed);
+            if (env_base_path != null) properties.put("basePath", env_base_path);
+            if (env_override_on_update != null) properties.put("overrideOnUpdate", env_override_on_update);
+            if (env_update_prefix != null) properties.put("updatePrefix", env_update_prefix);
+
         } catch (Exception ex) {
 
             throw new IllegalArgumentException(ex.getMessage(), ex);
@@ -414,15 +422,28 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                         Authentication auth = Authentication.build(pVal.getJsonLd());
                         List<Authentication> auths = toUpdate.getAuthentications();
                         auths.add(auth);
-
                         toUpdate.setJsonLdObjectKeyValue("authentication", auths);
+
+                    } else if (item.getPath().contains("service")) {
+                        PatchValue pVal = item.getPatchValue();
+                        Service service = Service.build(pVal.getJsonLd());
+                        List<Service> services = toUpdate.getServices();
+                        services.add(service);
+                        toUpdate.setJsonLdObjectKeyValue("service", services);
                     }
                     break;
                 case "remove":
-                    if (item.getPath().contains("services")) {
+                    if (item.getPath().contains("service")) {
                         int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) - 1;
                         if (toUpdate.getServices().size() > index) {
                             toUpdate.getServices().remove(index);
+                        } else {
+                            throw new RegistrationException(ErrorMessages.GENERIC_BAD_REQUEST.getMsg());
+                        }
+                    } else if (item.getPath().contains("authentication")) {
+                        int index = Integer.parseInt(item.getPath().replaceAll("[\\D]", "")) - 1;
+                        if (toUpdate.getAuthentications().size() > index) {
+                            toUpdate.getAuthentications().remove(index);
                         } else {
                             throw new RegistrationException(ErrorMessages.GENERIC_BAD_REQUEST.getMsg());
                         }
@@ -432,7 +453,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
             }
         }
 
-        String didDocumentLocation = null;
+        String didDocumentLocation;
 
         if (overrideOnUpdate) {
             didDocumentLocation = didFilePath;
@@ -591,10 +612,6 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
         return verified;
     }
-
-    /*
-     * Getters and setters
-     */
 
     @Override
     public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
