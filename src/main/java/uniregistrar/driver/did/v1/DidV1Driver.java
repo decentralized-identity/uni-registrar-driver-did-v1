@@ -40,13 +40,10 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
 
     private static final Logger log = LoggerFactory.getLogger(DidV1Driver.class);
-    private static final Pattern FILE_NAME_PATTERN = Pattern.compile(":", Pattern.LITERAL);
     private static DateFormat df;
     private Map<String, Object> properties;
     private String trustAnchorSeed;
@@ -363,9 +360,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
         final String didId = updateRequest.getIdentifier();
 
 
-        final String didFilePath = basePath + "/veres-test/registered/" + FILE_NAME_PATTERN.matcher(didId).replaceAll(Matcher.quoteReplacement("%3A")) + ".json";
-        final String didFileMetaPath = basePath + "/meta/" + FILE_NAME_PATTERN.matcher(didId).replaceAll(Matcher.quoteReplacement("%3A")) + ".meta.json";
-        final String didFileKeysPath = basePath + "/keys/" + FILE_NAME_PATTERN.matcher(didId).replaceAll(Matcher.quoteReplacement("%3A")) + ".keys.json";
+        final String didFilePath = basePath + "/veres-test/registered/" + didId.replaceAll(":", "%3A") + ".json";
+        final String didFileMetaPath = basePath + "/meta/" + didId.replaceAll(":", "%3A") + ".meta.json";
+        final String didFileKeysPath = basePath + "/keys/" + didId.replaceAll(":", "%3A") + ".keys.json";
 
         DIDDocument toUpdate;
 
@@ -530,7 +527,6 @@ public class DidV1Driver extends AbstractDriver implements Driver {
                 !proof.getProofPurpose().equalsIgnoreCase("capabilityInvocation")) {
             throw new RegistrationException(ErrorMessages.PROOF_PURPOSE_NOT_ACCEPTABLE.getMsg());
         }
-
 
         return proof;
 
