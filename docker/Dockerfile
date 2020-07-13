@@ -23,10 +23,6 @@ RUN cd /opt/ && \
 	git checkout v0.6.0 && \
 	npm install
 
-ARG GITHUB_READ_PACKAGES_OWNER
-ARG GITHUB_READ_PACKAGES_TOKEN
-ADD ./settings.xml /root/.m2/
-
 # build driver-did-v1
 
 ADD . /opt/driver-did-v1
