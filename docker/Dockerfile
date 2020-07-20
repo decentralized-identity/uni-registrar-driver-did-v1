@@ -1,7 +1,16 @@
 # Dockerfile for universalregistrar/driver-did-v1
 
-FROM universalregistrar/base-ubuntu
+FROM ubuntu:18.04
 MAINTAINER Markus Sabadello <markus@danubetech.com>
+
+USER root
+
+RUN apt-get -y update && \
+    apt-get install -y --no-install-recommends openjdk-11-jdk-headless maven git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64/
+ENV PATH $JAVA_HOME/bin:$PATH
 
 # install dependencies
 
