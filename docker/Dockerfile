@@ -6,7 +6,7 @@ MAINTAINER Markus Sabadello <markus@danubetech.com>
 USER root
 
 RUN apt-get -y update && \
-    apt-get install -y --no-install-recommends openjdk-11-jdk-headless maven git && \
+    apt-get install -y --no-install-recommends openjdk-11-jdk-headless maven && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64/
@@ -16,21 +16,13 @@ ENV PATH $JAVA_HOME/bin:$PATH
 
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN apt-get -y update && \
-    apt-get install -y --no-install-recommends curl software-properties-common gpg gpg-agent make build-essential python && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
+    apt-get install -y --no-install-recommends curl && \
+    curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-#RUN cd /opt/ && \
-#	mkdir did-cli && \
-#	cd did-cli && \
-#	npm install did-cli@0.4.1
-
 RUN cd /opt/ && \
-	git clone https://github.com/digitalbazaar/did-cli.git && \
-	cd did-cli && \
-	git checkout v0.6.0 && \
-	npm install
+    npm install did-cli@0.6.0
 
 # build driver-did-v1
 
