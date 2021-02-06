@@ -27,11 +27,11 @@ import uniregistrar.RegistrationException;
 import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
 import uniregistrar.request.DeactivateRequest;
-import uniregistrar.request.RegisterRequest;
+import uniregistrar.request.CreateRequest;
 import uniregistrar.request.UpdateRequest;
 import uniregistrar.state.DeactivateState;
-import uniregistrar.state.RegisterState;
-import uniregistrar.state.SetRegisterStateFinished;
+import uniregistrar.state.CreateState;
+import uniregistrar.state.SetCreateStateFinished;
 import uniregistrar.state.UpdateState;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
@@ -87,17 +87,17 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 	}
 
 	@Override
-	public RegisterState register(RegisterRequest registerRequest) throws RegistrationException {
+	public CreateState register(CreateRequest createRequest) throws RegistrationException {
 
 		// read options
 
-		String hostname = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("hostname");
+		String hostname = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("hostname");
 		if (hostname == null || hostname.trim().isEmpty()) hostname = null;
 
-		String keytype = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("keytype");
+		String keytype = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("keytype");
 		if (keytype == null || keytype.trim().isEmpty()) keytype = null;
 
-		String ledger = registerRequest.getOptions() == null ? null : (String) registerRequest.getOptions().get("ledger");
+		String ledger = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("ledger");
 		if (ledger == null || ledger.trim().isEmpty()) ledger = null;
 
 		// register
@@ -273,11 +273,11 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 		// done
 
-		RegisterState registerState = RegisterState.build();
-		SetRegisterStateFinished.setStateFinished(registerState, identifier, secret);
-		registerState.setMethodMetadata(methodMetadata);
+		CreateState createState = CreateState.build();
+		SetCreateStateFinished.setStateFinished(createState, identifier, secret);
+		createState.setMethodMetadata(methodMetadata);
 
-		return registerState;
+		return createState;
 	}
 
 	@Override
