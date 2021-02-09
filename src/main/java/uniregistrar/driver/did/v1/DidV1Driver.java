@@ -87,7 +87,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 	}
 
 	@Override
-	public CreateState register(CreateRequest createRequest) throws RegistrationException {
+	public CreateState create(CreateRequest createRequest) throws RegistrationException {
 
 		// read options
 
@@ -100,7 +100,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		String ledger = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("ledger");
 		if (ledger == null || ledger.trim().isEmpty()) ledger = null;
 
-		// register
+		// create
 
 		int exitCode;
 		BufferedReader stdOutReader = null;
@@ -170,7 +170,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		if (log.isDebugEnabled()) log.debug("Process exit code: " + exitCode);
 		if (exitCode != 0) throw new RegistrationException("Process exit code: " + exitCode);
 
-		if (newDid == null) throw new RegistrationException("No DID registered.");
+		if (newDid == null) throw new RegistrationException("No DID created.");
 
 		if (log.isDebugEnabled()) log.debug("DID: " + newDid);
 		if (log.isDebugEnabled()) log.debug("DID document location: " + didDocumentLocation);
