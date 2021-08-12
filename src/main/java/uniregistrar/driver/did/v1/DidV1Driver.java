@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.danubetech.keyformats.jose.JWK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.nimbusds.jose.jwk.JWK;
 
 import io.leonard.Base58;
 import uniregistrar.RegistrationException;
@@ -94,11 +94,11 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		String hostname = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("hostname");
 		if (hostname == null || hostname.trim().isEmpty()) hostname = null;
 
-		String keytype = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("keytype");
-		if (keytype == null || keytype.trim().isEmpty()) keytype = null;
-
 		String ledger = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("ledger");
 		if (ledger == null || ledger.trim().isEmpty()) ledger = null;
+
+		String keytype = createRequest.getOptions() == null ? null : (String) createRequest.getOptions().get("keytype");
+		if (keytype == null || keytype.trim().isEmpty()) keytype = null;
 
 		// create
 
@@ -111,8 +111,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 			StringBuffer command = new StringBuffer("/opt/node_modules/did-cli/did generate");
 			command.append(" -t " + "veres");
 			if (hostname != null) command.append(" -H " + hostname);
-			if (keytype != null) command.append(" -k " + keytype);
 			if (ledger != null) command.append(" -m " + ledger);
+			if (keytype != null) command.append(" -k " + keytype);
 			command.append(" -r");
 
 			if (log.isDebugEnabled()) log.debug("Executing command: " + command);
@@ -233,7 +233,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 				if (log.isDebugEnabled()) log.debug("Found key: " + keyUrl);
 
 				keysDocumentJsonKey.put("id", keyUrl);
-				keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toJSONObject());
+				keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toMap());
 
 				keysDocumentJsonKeys.put(keyUrl, keysDocumentJsonKey);
 			}
