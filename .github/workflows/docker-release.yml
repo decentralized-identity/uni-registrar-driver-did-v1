@@ -18,9 +18,6 @@ jobs:
         with:
           ref: "v${{ env.IMAGE_TAG }}"
 
-      - name: Verify pom.xml
-        run: mvn verify -P ci
-
       - name: Import Secrets
         uses: hashicorp/vault-action@v2.3.0
         with:
@@ -33,6 +30,9 @@ jobs:
             ci/data/gh-workflows/maven-danubetech-nexus username | MAVEN_USERNAME ;
             ci/data/gh-workflows/maven-danubetech-nexus password | MAVEN_PASSWORD ;
             ci/data/gh-workflows/deployment-status slack-webhook-url | SLACK_WEBHOOK_URL
+
+      - name: Verify pom.xml
+        run: mvn verify -P ci
 
       - name: Set SHORT_SHA env variable
         id: short_sha
