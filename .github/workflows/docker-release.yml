@@ -18,6 +18,9 @@ jobs:
         with:
           ref: "v${{ env.IMAGE_TAG }}"
 
+      - name: Verify pom.xml
+        run: mvn verify -P ci
+
       - name: Import Secrets
         uses: hashicorp/vault-action@v2.3.0
         with:
