@@ -25,7 +25,7 @@ RUN apt-get -y update && \
 RUN cd /opt/ && \
     npm install did-cli@0.6.0
 
-USER jetty
+#USER jetty
 
 # variables
 
