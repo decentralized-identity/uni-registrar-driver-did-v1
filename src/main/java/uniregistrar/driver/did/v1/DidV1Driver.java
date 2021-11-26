@@ -266,16 +266,16 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
 		secret.put("keys", jsonKeys);
 
-		// REGISTRATION STATE FINISHED: METHOD METADATA
+		// REGISTRATION STATE FINISHED: DID DOCUMENT METADATA
 
-		Map<String, Object> methodMetadata = new LinkedHashMap<String, Object> ();
-		methodMetadata.put("didDocumentLocation", didDocumentLocation);
+		Map<String, Object> setDidDocumentMetadata = new LinkedHashMap<String, Object> ();
+		setDidDocumentMetadata.put("didDocumentLocation", didDocumentLocation);
 
 		// done
 
 		CreateState createState = CreateState.build();
 		SetCreateStateFinished.setStateFinished(createState, identifier, secret);
-		createState.setMethodMetadata(methodMetadata);
+		createState.setDidDocumentMetadata(setDidDocumentMetadata);
 
 		return createState;
 	}
@@ -341,23 +341,19 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 	 */
 
 	public Map<String, Object> getProperties() {
-
 		return this.properties;
 	}
 
 	public void setProperties(Map<String, Object> properties) {
-
 		this.properties = properties;
 		this.configureFromProperties();
 	}
 
 	public String getTrustAnchorSeed() {
-
 		return this.trustAnchorSeed;
 	}
 
 	public void setTrustAnchorSeed(String trustAnchorSeed) {
-
 		this.trustAnchorSeed = trustAnchorSeed;
 	}
 }
