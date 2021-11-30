@@ -5,6 +5,7 @@
 	<artifactId>uni-registrar-driver-did-v1</artifactId>
 	<packaging>${packaging.type}</packaging>
 	<name>uni-registrar-driver-did-v1</name>
+	<!--Standalone components need version tag	-->
 	<version>0.1.1</version>
 
 	<parent>
