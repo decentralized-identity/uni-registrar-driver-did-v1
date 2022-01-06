@@ -251,9 +251,9 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 			}
 		}
 
-		// REGISTRATION STATE FINISHED: IDENTIFIER
+		// REGISTRATION STATE FINISHED: DID
 
-		String identifier = newDid;
+		String did = newDid;
 
 		// REGISTRATION STATE FINISHED: SECRET
 
@@ -274,7 +274,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		// done
 
 		CreateState createState = CreateState.build();
-		SetCreateStateFinished.setStateFinished(createState, identifier, secret);
+		SetCreateStateFinished.setStateFinished(createState, did, secret);
 		createState.setDidDocumentMetadata(setDidDocumentMetadata);
 
 		return createState;
