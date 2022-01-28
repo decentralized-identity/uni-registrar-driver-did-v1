@@ -31,7 +31,7 @@ import uniregistrar.request.CreateRequest;
 import uniregistrar.request.UpdateRequest;
 import uniregistrar.state.DeactivateState;
 import uniregistrar.state.CreateState;
-import uniregistrar.state.SetCreateStateFinished;
+import uniregistrar.state.SetStateFinished;
 import uniregistrar.state.UpdateState;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
@@ -274,7 +274,7 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		// done
 
 		CreateState createState = CreateState.build();
-		SetCreateStateFinished.setStateFinished(createState, did, secret);
+		SetStateFinished.setStateFinished(createState, did, secret);
 		createState.setDidDocumentMetadata(setDidDocumentMetadata);
 
 		return createState;
