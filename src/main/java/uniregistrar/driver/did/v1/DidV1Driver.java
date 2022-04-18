@@ -257,14 +257,14 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 		// REGISTRATION STATE FINISHED: SECRET
 
-		List<JsonNode> jsonKeys = new ArrayList<JsonNode> ();
-		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonAuthentication, "authentication", jsonKeys);
-		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonAssertionMethod, "assertionMethod", jsonKeys);
-		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityInvocation, "capabilityInvocation", jsonKeys);
-		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityDelegation, "capabilityDelegation", jsonKeys);
+		List<JsonNode> verificationMethod = new ArrayList<JsonNode> ();
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonAuthentication, "authentication", verificationMethod);
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonAssertionMethod, "assertionMethod", verificationMethod);
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityInvocation, "capabilityInvocation", verificationMethod);
+		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityDelegation, "capabilityDelegation", verificationMethod);
 
 		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
-		secret.put("keys", jsonKeys);
+		secret.put("verificationMethod", verificationMethod);
 
 		// REGISTRATION STATE FINISHED: DID DOCUMENT METADATA
 
