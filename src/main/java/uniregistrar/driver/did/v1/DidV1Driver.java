@@ -111,8 +111,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 			StringBuffer command = new StringBuffer("/opt/node_modules/did-cli/did generate");
 			command.append(" -t " + "veres");
 			if (hostname != null) command.append(" -H " + hostname);
-			if (ledger != null) command.append(" -m " + ledger);
-			if (keytype != null) command.append(" -k " + keytype);
+			if (ledger != null) command.append(" -m " + ledger.toLowerCase());
+			if (keytype != null) command.append(" -k " + keytype.toLowerCase());
 			command.append(" -r");
 
 			if (log.isDebugEnabled()) log.debug("Executing command: " + command);
