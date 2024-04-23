@@ -31,8 +31,6 @@ RUN apt-get -y update && \
 RUN cd /opt/ && \
     npm install did-cli@0.6.0
 
-USER jetty
-
 # variables
 
 ENV uniregistrar_driver_did_v1_trustAnchorSeed=
