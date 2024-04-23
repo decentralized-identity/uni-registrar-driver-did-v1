@@ -5,17 +5,23 @@ MAINTAINER Markus Sabadello <markus@danubetech.com>
 
 # build driver-did-v1
 
+WORKDIR /opt/driver-did-v1
+ADD pom.xml /opt/driver-did-v1
+RUN mvn org.apache.maven.plugins:maven-dependency-plugin:3.3.0:go-offline
+ADD src/main/webapp/WEB-INF /opt/driver-did-v1/src/main/webapp/WEB-INF
+RUN mvn clean package -P war
 ADD . /opt/driver-did-v1
-RUN cd /opt/driver-did-v1 && mvn clean install -P war -N -DskipTests
+RUN mvn clean package -P war
 
+# build image
 
-FROM jetty:11.0.17-jre17-eclipse-temurin
+FROM jetty:12.0.8-jre17-eclipse-temurin
 MAINTAINER Markus Sabadello <markus@danubetech.com>
 
-USER root
 # install dependencies
 
-ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
+USER root
+
 RUN apt-get -y update && \
     apt-get install -y --no-install-recommends curl && \
     curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
@@ -25,13 +31,14 @@ RUN apt-get -y update && \
 RUN cd /opt/ && \
     npm install did-cli@0.6.0
 
-#USER jetty
+USER jetty
 
 # variables
 
 ENV uniregistrar_driver_did_v1_trustAnchorSeed=
 
 # copy from build-stage
+
 COPY --from=build --chown=jetty /opt/driver-did-v1/target/*.war /var/lib/jetty/webapps/ROOT.war
 
 # done

@@ -1,7 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
-	<modelVersion>4.0.0</modelVersion>
+<modelVersion>4.0.0</modelVersion>
 	<artifactId>uni-registrar-driver-did-v1</artifactId>
 	<packaging>${packaging.type}</packaging>
 	<name>uni-registrar-driver-did-v1</name>
@@ -10,7 +11,7 @@
 	<parent>
 		<groupId>decentralized-identity</groupId>
 		<artifactId>uni-registrar</artifactId>
-		<version>0.21.0</version>
+		<version>0.16.0</version>
 	</parent>
 
 	<repositories>
@@ -30,15 +31,21 @@
 
 		<!-- Dependency Versions -->
 
-		<libindy-common-java.version>0.4.0</libindy-common-java.version>
-		<did-common-java.version>1.11.0</did-common-java.version>
-
 		<io.leonard-base58.version>0.0.2</io.leonard-base58.version>
 		<jcl-over-slf4j.version>2.0.9</jcl-over-slf4j.version>
 		<log4j-slf4j2-impl.version>2.21.0</log4j-slf4j2-impl.version>
 	</properties>
 
 	<profiles>
+		<profile>
+			<id>default</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<packaging.type>jar</packaging.type>
+			</properties>
+		</profile>
 		<profile>
 			<id>ci</id>
 			<properties><packaging.type>jar</packaging.type></properties>
@@ -69,13 +76,10 @@
 			</build>
 		</profile>
 		<profile>
-			<id>default</id>
-			<activation><activeByDefault>true</activeByDefault></activation>
-			<properties><packaging.type>jar</packaging.type></properties>
-		</profile>
-		<profile>
 			<id>war</id>
-			<properties><packaging.type>war</packaging.type></properties>
+			<properties>
+				<packaging.type>war</packaging.type>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
@@ -85,15 +89,19 @@
 					<plugin>
 						<groupId>org.eclipse.jetty</groupId>
 						<artifactId>jetty-maven-plugin</artifactId>
+						<version>11.0.18</version>
 						<configuration>
-							<jettyConfig>
+							<jettyXmls>
 								${basedir}/src/test/resources/jetty.xml
-							</jettyConfig>
-							<useTestClasspath>true</useTestClasspath>
+							</jettyXmls>
+							<useTestScope>true</useTestScope>
+							<httpConnector>
+								<port>9080</port>
+							</httpConnector>
 							<systemProperties>
 								<systemProperty>
-									<name>jetty.port</name>
-									<value>9080</value>
+									<name>slf4j</name>
+									<value>true</value>
 								</systemProperty>
 								<systemProperty>
 									<name>log4j2.configurationFile</name>
