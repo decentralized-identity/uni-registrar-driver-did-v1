@@ -1,15 +1,15 @@
 # Dockerfile for universalregistrar/driver-did-v1
 
-FROM maven:3-jdk-11 AS build
+FROM maven:3-eclipse-temurin-17-focal AS build
 MAINTAINER Markus Sabadello <markus@danubetech.com>
 
 # build driver-did-v1
 
 ADD . /opt/driver-did-v1
-RUN cd /opt/driver-did-v1 && mvn clean install package -P war -N -DskipTests
+RUN cd /opt/driver-did-v1 && mvn clean install -P war -N -DskipTests
 
 
-FROM jetty:9.4-jre11-slim
+FROM jetty:11.0.17-jre17-eclipse-temurin
 MAINTAINER Markus Sabadello <markus@danubetech.com>
 
 USER root
@@ -18,7 +18,7 @@ USER root
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN apt-get -y update && \
     apt-get install -y --no-install-recommends curl && \
-    curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
+    curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

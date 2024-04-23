@@ -1,38 +1,27 @@
 package uniregistrar.driver.did.v1;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.danubetech.keyformats.jose.JWK;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.danubetech.keyformats.PrivateKey_to_JWK;
+import com.danubetech.keyformats.jose.JWK;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-
 import io.leonard.Base58;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uniregistrar.RegistrationException;
 import uniregistrar.driver.AbstractDriver;
 import uniregistrar.driver.Driver;
-import uniregistrar.request.DeactivateRequest;
 import uniregistrar.request.CreateRequest;
+import uniregistrar.request.DeactivateRequest;
 import uniregistrar.request.UpdateRequest;
-import uniregistrar.state.DeactivateState;
 import uniregistrar.state.CreateState;
+import uniregistrar.state.DeactivateState;
 import uniregistrar.state.SetStateFinished;
 import uniregistrar.state.UpdateState;
+
+import java.io.*;
+import java.util.*;
 
 public class DidV1Driver extends AbstractDriver implements Driver {
 
@@ -233,6 +222,8 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 				if (log.isDebugEnabled()) log.debug("Found key: " + keyUrl);
 
 				keysDocumentJsonKey.put("id", keyUrl);
+				keysDocumentJsonKey.remove("publicKeyBase58");
+				keysDocumentJsonKey.remove("privateKeyBase58");
 				keysDocumentJsonKey.putPOJO("privateKeyJwk", jsonWebKey.toMap());
 
 				keysDocumentJsonKeys.put(keyUrl, keysDocumentJsonKey);
@@ -263,12 +254,12 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityInvocation, "capabilityInvocation", verificationMethod);
 		findSecretKeys(keysDocumentJsonKeys, didDocumentJsonCapabilityDelegation, "capabilityDelegation", verificationMethod);
 
-		Map<String, Object> secret = new LinkedHashMap<String, Object> ();
+		Map<String, Object> secret = new LinkedHashMap<> ();
 		secret.put("verificationMethod", verificationMethod);
 
 		// REGISTRATION STATE FINISHED: DID DOCUMENT METADATA
 
-		Map<String, Object> setDidDocumentMetadata = new LinkedHashMap<String, Object> ();
+		Map<String, Object> setDidDocumentMetadata = new LinkedHashMap<> ();
 		setDidDocumentMetadata.put("didDocumentLocation", didDocumentLocation);
 
 		// done
@@ -281,13 +272,13 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 	}
 
 	@Override
-	public UpdateState update(UpdateRequest updateRequest) throws RegistrationException {
+	public UpdateState update(UpdateRequest updateRequest) {
 
 		throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
-	public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
+	public DeactivateState deactivate(DeactivateRequest deactivateRequest) {
 
 		throw new RuntimeException("Not implemented.");
 	}
@@ -323,12 +314,12 @@ public class DidV1Driver extends AbstractDriver implements Driver {
 
 	private static JWK privateKeyToJWK(ObjectNode jsonKey) {
 
-		byte[] privateKeyBytes = Base58.decode(((TextNode) jsonKey.get("privateKeyBase58")).asText());
-		byte[] publicKeyBytes = Base58.decode(((TextNode) jsonKey.get("publicKeyBase58")).asText());
+		byte[] privateKeyBytes = Base58.decode((jsonKey.get("privateKeyBase58")).asText());
+		byte[] publicKeyBytes = Base58.decode((jsonKey.get("publicKeyBase58")).asText());
 		String kid = null;
 		String use = null;
 
-		return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, publicKeyBytes, kid, use);
+		return PrivateKey_to_JWK.Ed25519PrivateKeyBytes_to_JWK(privateKeyBytes, kid, use);
 	}
 
 	private static String identifierToKeyUrl(ObjectNode jsonKey) {
