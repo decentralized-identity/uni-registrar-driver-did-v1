@@ -44,4 +44,4 @@ COPY --from=build --chown=jetty /opt/driver-did-v1/target/*.war /var/lib/jetty/w
 # done
 
 EXPOSE 9080
-CMD java -Djetty.http.port=9080 -jar /usr/local/jetty/start.jar
+CMD java -jar $JETTY_HOME/start.jar --add-modules=ee10-deploy && java -jar $JETTY_HOME/start.jar -Djetty.http.port=9080
